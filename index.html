@@ -428,6 +428,62 @@ table tr:hover { background: #f8faf9; }
   color: var(--muted);
 }
 
+/* DEALS MANAGEMENT */
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.deal-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: 0.2s;
+}
+.deal-card:hover { box-shadow: var(--shadow); }
+.deal-card .deal-icon {
+  font-size: 36px;
+  width: 56px;
+  height: 56px;
+  background: var(--cream);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+.deal-card .deal-info { flex: 1; }
+.deal-card .deal-info .deal-title {
+  font-weight: 900;
+  font-size: 16px;
+}
+.deal-card .deal-info .deal-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+.deal-card .deal-info .deal-discount {
+  font-size: 12px;
+  color: var(--danger);
+  font-weight: 700;
+}
+.deal-card .deal-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.deal-card .deal-actions button {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.deal-card .deal-actions .edit { background: #edf5f1; color: var(--green); }
+.deal-card .deal-actions .delete { background: #fff0f0; color: var(--danger); }
+.deal-card .deal-actions .toggle-on { background: #eaf5ef; color: var(--green); }
+.deal-card .deal-actions .toggle-off { background: #ffe9e9; color: var(--danger); }
+
 /* GRID */
 .grid {
   display: grid;
@@ -603,6 +659,7 @@ table tr:hover { background: #f8faf9; }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .order-detail-grid { grid-template-columns: 1fr; }
+  .deals-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .sidebar { display: none; }
@@ -621,6 +678,7 @@ table tr:hover { background: #f8faf9; }
   .brand small { display: none; }
   .top-actions .user-info { display: none; }
   .order-detail-grid { grid-template-columns: 1fr; }
+  .deals-grid { grid-template-columns: 1fr; }
   .mobile-nav {
     position: fixed;
     bottom: 0;
@@ -754,6 +812,7 @@ table tr:hover { background: #f8faf9; }
         <button data-page="customers" onclick="go('customers')"><span class="icon">👤</span>Customers</button>
         <button data-page="categories" onclick="go('categories')"><span class="icon">📂</span>Categories</button>
         <button data-page="coupons" onclick="go('coupons')"><span class="icon">💰</span>Coupons</button>
+        <button data-page="deals" onclick="go('deals')"><span class="icon">🏷️</span>Deals</button>
         <button data-page="banners" onclick="go('banners')"><span class="icon">🖼️</span>Banners</button>
         <button data-page="support" onclick="go('support')"><span class="icon">🆘</span>Support</button>
         <button data-page="settings" onclick="go('settings')"><span class="icon">⚙️</span>Settings</button>
@@ -790,6 +849,7 @@ table tr:hover { background: #f8faf9; }
     <a onclick="closeDrawer();go('customers')">👤 Customers</a>
     <a onclick="closeDrawer();go('categories')">📂 Categories</a>
     <a onclick="closeDrawer();go('coupons')">💰 Coupons</a>
+    <a onclick="closeDrawer();go('deals')">🏷️ Deals</a>
     <a onclick="closeDrawer();go('banners')">🖼️ Banners</a>
     <a onclick="closeDrawer();go('support')">🆘 Support</a>
     <a onclick="closeDrawer();go('settings')">⚙️ Settings</a>
@@ -824,11 +884,13 @@ let state = {
   page: 'dashboard',
   categories: [],
   coupons: [],
+  deals: [],
   banners: [],
   support: {},
   sellers: [],
   products: [],
   orders: [],
+  orderItems: [],
   customers: []
 };
 
@@ -1026,42 +1088,67 @@ async function logout() {
 // ============================================================
 async function loadAllData() {
   try {
+    // Categories
     const { data: categories } = await sb.from('categories')
       .select('*')
       .order('sort_order', { ascending: true });
     state.categories = categories || [];
 
+    // Coupons
     const { data: coupons } = await sb.from('coupons')
       .select('*')
       .order('created_at', { ascending: false });
     state.coupons = coupons || [];
 
+    // Deals (Shopping app deals)
+    const { data: deals } = await sb.from('deals')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    state.deals = deals || [];
+
+    // Banners
     const { data: banners } = await sb.from('banner_ads')
       .select('*')
       .order('sort_order', { ascending: true });
     state.banners = banners || [];
 
+    // Support Settings
     const { data: support } = await sb.from('support_settings')
       .select('*')
       .maybeSingle();
     state.support = support || {};
 
+    // Sellers (profiles with role = 'seller' or 'admin')
     const { data: profiles } = await sb.from('profiles')
       .select('*')
       .in('role', ['seller', 'admin'])
       .order('created_at', { ascending: false });
     state.sellers = profiles || [];
 
+    // Products
     const { data: products } = await sb.from('products')
       .select('*, shops(name), categories(name)')
       .order('created_at', { ascending: false });
     state.products = products || [];
 
+    // Orders
     const { data: orders } = await sb.from('orders')
       .select('*')
       .order('created_at', { ascending: false });
     state.orders = orders || [];
 
+    // Order Items (with seller info)
+    if (state.orders.length > 0) {
+      const orderIds = state.orders.map(o => o.id);
+      const { data: orderItems } = await sb.from('order_items')
+        .select('*, seller_id, product_name, quantity, price, order_id')
+        .in('order_id', orderIds);
+      state.orderItems = orderItems || [];
+    } else {
+      state.orderItems = [];
+    }
+
+    // Customers (profiles with role = 'customer')
     const { data: customers } = await sb.from('profiles')
       .select('*')
       .eq('role', 'customer')
@@ -1098,6 +1185,7 @@ function go(page, push = true) {
     customers: renderCustomers,
     categories: renderCategories,
     coupons: renderCoupons,
+    deals: renderDeals,
     banners: renderBanners,
     support: renderSupport,
     settings: renderSettings
@@ -1147,7 +1235,6 @@ function renderDashboard() {
   const pendingProducts = state.products.filter(p => p.status === 'pending').length;
   const pendingSellers = state.sellers.filter(s => s.status === 'pending').length;
 
-  // Recent Orders - Clickable
   let recentOrders = state.orders.slice(0, 5).map(o => `
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:0.15s;border-radius:8px;padding:10px;background:#fff;margin-bottom:4px;hover:background:#f5f8f6"
          onclick="viewOrderDetail('${o.id}')">
@@ -1302,16 +1389,21 @@ async function deleteProduct(id) {
 }
 
 // ============================================================
-//  🛒 ORDERS (Clickable Rows)
+//  🛒 ORDERS (Clickable Rows + Products + Seller Name)
 // ============================================================
 function renderOrders() {
-  const list = state.orders.map(o => `
+  const list = state.orders.map(o => {
+    // Count items for this order
+    const items = state.orderItems?.filter(i => i.order_id === o.id) || [];
+    const itemCount = items.length;
+    return `
     <tr class="clickable-row" onclick="viewOrderDetail('${o.id}')">
       <td><b>${esc(o.order_number || o.id)}</b></td>
       <td>${esc(o.customer_name)}</td>
       <td>${esc(o.customer_phone)}</td>
       <td>${money(o.total)}</td>
       <td><span class="pill ${o.status === 'New' ? 'gold' : o.status === 'Delivered' ? 'green' : o.status === 'Cancelled' ? 'red' : 'blue'}">${esc(o.status || 'New')}</span></td>
+      <td>${itemCount} items</td>
       <td>
         <select onclick="event.stopPropagation();" onchange="updateOrderStatus('${o.id}', this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:11px">
           <option value="New" ${o.status === 'New' ? 'selected' : ''}>New</option>
@@ -1323,13 +1415,13 @@ function renderOrders() {
         </select>
       </td>
     </tr>
-  `).join('') || '<tr><td colspan="6" class="empty">No orders found.</td></tr>';
+  `}).join('') || '<tr><td colspan="7" class="empty">No orders found.</td></tr>';
 
-  return pageHead('🛒 Orders', 'Click on any order to view full details') + `
+  return pageHead('🛒 Orders', 'Click on any order to view full details with products & seller') + `
     <div class="section">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Order #</th><th>Customer</th><th>Phone</th><th>Total</th><th>Status</th><th>Update</th></tr></thead>
+          <thead><tr><th>Order #</th><th>Customer</th><th>Phone</th><th>Total</th><th>Status</th><th>Items</th><th>Update</th></tr></thead>
           <tbody>${list}</tbody>
         </table>
       </div>
@@ -1338,7 +1430,7 @@ function renderOrders() {
 }
 
 // ============================================================
-//  📋 ORDER DETAIL - FULL DETAIL MODAL
+//  📋 ORDER DETAIL - FULL DETAIL WITH PRODUCTS + SELLER NAME
 // ============================================================
 function viewOrderDetail(orderId) {
   const o = state.orders.find(x => x.id === orderId);
@@ -1347,10 +1439,10 @@ function viewOrderDetail(orderId) {
     return;
   }
 
-  // Fetch order items with seller info
-  const orderItems = state.orderItems?.[orderId] || [];
+  // Get order items for this order
+  const items = state.orderItems?.filter(i => i.order_id === orderId) || [];
 
-  // Build customer details
+  // Customer details
   const customerHtml = `
     <div class="order-detail-box">
       <h4>👤 Customer Details</h4>
@@ -1360,7 +1452,7 @@ function viewOrderDetail(orderId) {
     </div>
   `;
 
-  // Build order details
+  // Order details
   const orderHtml = `
     <div class="order-detail-box">
       <h4>📋 Order Details</h4>
@@ -1373,17 +1465,19 @@ function viewOrderDetail(orderId) {
     </div>
   `;
 
-  // Build products list with seller names
-  let productsHtml = '<div class="order-detail-box" style="grid-column: 1 / -1;"><h4>📦 Products</h4><div class="order-items-list">';
+  // Products list with seller names
+  let productsHtml = '<div class="order-detail-box" style="grid-column: 1 / -1;"><h4>📦 Products <span style="font-size:12px;color:var(--muted);font-weight:400">(with seller details)</span></h4><div class="order-items-list">';
   
-  if (orderItems.length > 0) {
-    orderItems.forEach(item => {
-      const sellerName = item.seller_name || 'Unknown Seller';
+  if (items.length > 0) {
+    items.forEach(item => {
+      // Find seller name from profiles
+      const seller = state.sellers.find(s => s.id === item.seller_id);
+      const sellerName = seller?.full_name || 'Unknown Seller';
       productsHtml += `
         <div class="item">
           <div>
             <b>${esc(item.product_name)}</b>
-            <div class="seller-tag">🏪 ${esc(sellerName)}</div>
+            <div class="seller-tag">🏪 Seller: ${esc(sellerName)}</div>
           </div>
           <div>
             ${esc(item.quantity)} × ${money(item.price)} = <b>${money(item.quantity * item.price)}</b>
@@ -1391,27 +1485,11 @@ function viewOrderDetail(orderId) {
         </div>
       `;
     });
+    // Add total items count
+    const totalItems = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+    productsHtml += `<div style="padding:8px 0;font-weight:800;text-align:right;border-top:2px solid var(--line);margin-top:6px">Total Items: ${totalItems}</div>`;
   } else {
-    // Fallback: Try to show from shops array if available
-    if (o.shops && o.shops.length > 0) {
-      o.shops.forEach(shop => {
-        shop.items.forEach(item => {
-          productsHtml += `
-            <div class="item">
-              <div>
-                <b>${esc(item.name)}</b>
-                <div class="seller-tag">🏪 ${esc(shop.shop)}</div>
-              </div>
-              <div>
-                ${esc(item.qty)} × ${money(item.price)} = <b>${money(item.qty * item.price)}</b>
-              </div>
-            </div>
-          `;
-        });
-      });
-    } else {
-      productsHtml += '<div class="empty">No products found for this order.</div>';
-    }
+    productsHtml += '<div class="empty">⚠️ No products found for this order. Order items may not be linked properly.</div>';
   }
   
   productsHtml += '</div></div>';
@@ -1422,7 +1500,7 @@ function viewOrderDetail(orderId) {
       ${orderHtml}
       ${productsHtml}
     </div>
-    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
       <button class="outline" onclick="closeModal()">Close</button>
       <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px">
         <option value="New" ${o.status === 'New' ? 'selected' : ''}>New</option>
@@ -1439,9 +1517,6 @@ function viewOrderDetail(orderId) {
   modal(`📋 Order #${esc(o.order_number || o.id)}`, modalBody);
 }
 
-// Store the current order ID for modal status update
-let currentModalOrderId = null;
-
 function updateOrderStatusFromModal(id) {
   const select = document.querySelector('.modal-body select');
   if (!select) return;
@@ -1455,7 +1530,6 @@ async function updateOrderStatus(id, status) {
   if (error) return toast(error.message, true);
   toast('Order status updated ✓');
   await loadAllData();
-  // Refresh current page
   go(state.page, false);
 }
 
@@ -1736,6 +1810,239 @@ async function deleteCoupon(id) {
 }
 
 // ============================================================
+//  🏷️ DEALS - Shopping App Ke 4 Deals Manage Karne Ka System
+// ============================================================
+function renderDeals() {
+  // Default deals if none exist
+  const defaultDeals = [
+    { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true, sort_order: 1 },
+    { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true, sort_order: 2 },
+    { id: 'deal3', title: 'Flash Sale', subtitle: 'Electronics & accessories', icon: '⚡', discount: '40%', category: 'Electronics', is_active: true, sort_order: 3 },
+    { id: 'deal4', title: 'New Arrivals', subtitle: 'Fashion & lifestyle', icon: '✨', discount: '20%', category: 'Fashion', is_active: true, sort_order: 4 }
+  ];
+
+  const deals = state.deals.length > 0 ? state.deals : defaultDeals;
+
+  const list = deals.map(d => `
+    <div class="deal-card">
+      <div class="deal-icon">${d.icon || '🏷️'}</div>
+      <div class="deal-info">
+        <div class="deal-title">${esc(d.title)}</div>
+        <div class="deal-sub">${esc(d.subtitle || '')}</div>
+        <div class="deal-discount">${esc(d.discount || '')} OFF</div>
+        <div style="font-size:11px;color:var(--muted)">Category: ${esc(d.category || 'All')}</div>
+      </div>
+      <div class="deal-actions">
+        <button class="${d.is_active !== false ? 'toggle-on' : 'toggle-off'}" onclick="toggleDeal('${d.id}')">
+          ${d.is_active !== false ? '✅ Active' : '⛔ Inactive'}
+        </button>
+        <button class="edit" onclick="openDeal('${d.id}')">✏️</button>
+        ${d.id.startsWith('deal') ? `<button class="delete" onclick="resetDeal('${d.id}')">🔄 Reset</button>` : `<button class="delete" onclick="deleteDeal('${d.id}')">🗑️</button>`}
+      </div>
+    </div>
+  `).join('');
+
+  return pageHead('🏷️ Deals Management', 'Manage the 4 deals shown on shopping app home page', `
+    <button class="primary" style="width:auto;padding:11px 16px" onclick="openDeal()">＋ Add Deal</button>
+    <button class="outline" style="width:auto;padding:11px 16px" onclick="resetAllDeals()">🔄 Reset to Default</button>
+  `) + `
+    <div class="section">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:14px">These deals appear on the shopping app home page under "Deals & Offers" section.</p>
+      <div class="deals-grid">${list}</div>
+    </div>
+  `;
+}
+
+function openDeal(id = null) {
+  const d = id ? state.deals.find(dl => dl.id === id) : null;
+  // If deal is default and not in DB, use default values
+  let deal = d;
+  if (!deal && id && id.startsWith('deal')) {
+    const defaults = [
+      { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true },
+      { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true },
+      { id: 'deal3', title: 'Flash Sale', subtitle: 'Electronics & accessories', icon: '⚡', discount: '40%', category: 'Electronics', is_active: true },
+      { id: 'deal4', title: 'New Arrivals', subtitle: 'Fashion & lifestyle', icon: '✨', discount: '20%', category: 'Fashion', is_active: true }
+    ];
+    deal = defaults.find(dl => dl.id === id);
+  }
+
+  const title = deal?.title || '';
+  const subtitle = deal?.subtitle || '';
+  const icon = deal?.icon || '🏷️';
+  const discount = deal?.discount || '';
+  const category = deal?.category || '';
+  const isActive = deal?.is_active !== false;
+
+  modal(id ? 'Edit Deal' : 'Add New Deal', `
+    <form class="form" onsubmit="saveDeal(event, '${id || ''}')">
+      <label>Deal Title <span style="color:var(--muted);font-weight:400">(e.g. "Up to 50%")</span></label>
+      <input id="dealTitle" value="${esc(title)}" required placeholder="e.g. Up to 50%">
+
+      <label>Subtitle <span style="color:var(--muted);font-weight:400">(e.g. "Beauty & Cosmetics")</span></label>
+      <input id="dealSubtitle" value="${esc(subtitle)}" placeholder="e.g. Beauty & Cosmetics">
+
+      <label>Icon (Emoji)</label>
+      <input id="dealIcon" value="${esc(icon)}" placeholder="e.g. 🔥">
+
+      <label>Discount Text <span style="color:var(--muted);font-weight:400">(e.g. "50%")</span></label>
+      <input id="dealDiscount" value="${esc(discount)}" placeholder="e.g. 50%">
+
+      <label>Category <span style="color:var(--muted);font-weight:400">(Products category)</span></label>
+      <input id="dealCategory" value="${esc(category)}" placeholder="e.g. Beauty & Cosmetics">
+
+      <label>Status</label>
+      <select id="dealStatus">
+        <option value="active" ${isActive ? 'selected' : ''}>Active</option>
+        <option value="inactive" ${!isActive ? 'selected' : ''}>Inactive</option>
+      </select>
+
+      <button class="primary" type="submit">${id ? 'Update' : 'Add'} Deal</button>
+    </form>
+  `);
+}
+
+async function saveDeal(e, id) {
+  e.preventDefault();
+  const title = document.getElementById('dealTitle').value.trim();
+  const subtitle = document.getElementById('dealSubtitle').value.trim();
+  const icon = document.getElementById('dealIcon').value.trim();
+  const discount = document.getElementById('dealDiscount').value.trim();
+  const category = document.getElementById('dealCategory').value.trim();
+  const isActive = document.getElementById('dealStatus').value === 'active';
+
+  if (!title) return toast('Please enter deal title', true);
+
+  const payload = {
+    title,
+    subtitle: subtitle || null,
+    icon: icon || '🏷️',
+    discount: discount || null,
+    category: category || null,
+    is_active: isActive,
+    sort_order: state.deals.length + 1
+  };
+
+  try {
+    let error;
+    if (id && !id.startsWith('deal')) {
+      const { error: updateError } = await sb.from('deals').update(payload).eq('id', id);
+      error = updateError;
+    } else if (id && id.startsWith('deal')) {
+      // This is a default deal, create it in DB
+      const { error: insertError } = await sb.from('deals').insert({ ...payload, id: id });
+      error = insertError;
+    } else {
+      const { error: insertError } = await sb.from('deals').insert(payload);
+      error = insertError;
+    }
+    if (error) throw new Error(error.message);
+    toast(id ? 'Deal updated ✓' : 'Deal added ✓');
+    closeModal();
+    await loadAllData();
+    go('deals', false);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+async function toggleDeal(id) {
+  const deal = state.deals.find(d => d.id === id);
+  const newStatus = deal ? !deal.is_active : false;
+  
+  // If default deal not in DB, create it first
+  if (!deal && id.startsWith('deal')) {
+    const defaults = [
+      { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics' },
+      { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery' },
+      { id: 'deal3', title: 'Flash Sale', subtitle: 'Electronics & accessories', icon: '⚡', discount: '40%', category: 'Electronics' },
+      { id: 'deal4', title: 'New Arrivals', subtitle: 'Fashion & lifestyle', icon: '✨', discount: '20%', category: 'Fashion' }
+    ];
+    const def = defaults.find(d => d.id === id);
+    if (def) {
+      const { error } = await sb.from('deals').insert({
+        ...def,
+        is_active: false,
+        sort_order: parseInt(id.replace('deal', ''))
+      });
+      if (error) return toast(error.message, true);
+      toast('Deal created in DB and toggled ✓');
+      await loadAllData();
+      go('deals', false);
+      return;
+    }
+    return;
+  }
+
+  const { error } = await sb.from('deals')
+    .update({ is_active: newStatus })
+    .eq('id', id);
+  if (error) return toast(error.message, true);
+  toast(`Deal ${newStatus ? 'activated' : 'deactivated'} ✓`);
+  await loadAllData();
+  go('deals', false);
+}
+
+async function deleteDeal(id) {
+  if (!confirm('Delete this deal?')) return;
+  const { error } = await sb.from('deals').delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Deal deleted ✓');
+  await loadAllData();
+  go('deals', false);
+}
+
+async function resetDeal(id) {
+  if (!confirm(`Reset this deal to default?`)) return;
+  const defaults = [
+    { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true, sort_order: 1 },
+    { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true, sort_order: 2 },
+    { id: 'deal3', title: 'Flash Sale', subtitle: 'Electronics & accessories', icon: '⚡', discount: '40%', category: 'Electronics', is_active: true, sort_order: 3 },
+    { id: 'deal4', title: 'New Arrivals', subtitle: 'Fashion & lifestyle', icon: '✨', discount: '20%', category: 'Fashion', is_active: true, sort_order: 4 }
+  ];
+  const def = defaults.find(d => d.id === id);
+  if (!def) return toast('Default deal not found', true);
+
+  // Check if exists in DB
+  const existing = state.deals.find(d => d.id === id);
+  if (existing) {
+    const { error } = await sb.from('deals').update(def).eq('id', id);
+    if (error) return toast(error.message, true);
+  } else {
+    const { error } = await sb.from('deals').insert(def);
+    if (error) return toast(error.message, true);
+  }
+  toast('Deal reset to default ✓');
+  await loadAllData();
+  go('deals', false);
+}
+
+async function resetAllDeals() {
+  if (!confirm('Reset ALL deals to default? This will overwrite any custom changes.')) return;
+  
+  const defaults = [
+    { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true, sort_order: 1 },
+    { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true, sort_order: 2 },
+    { id: 'deal3', title: 'Flash Sale', subtitle: 'Electronics & accessories', icon: '⚡', discount: '40%', category: 'Electronics', is_active: true, sort_order: 3 },
+    { id: 'deal4', title: 'New Arrivals', subtitle: 'Fashion & lifestyle', icon: '✨', discount: '20%', category: 'Fashion', is_active: true, sort_order: 4 }
+  ];
+
+  try {
+    // Clear existing deals
+    await sb.from('deals').delete().neq('id', '');
+    // Insert defaults
+    for (const deal of defaults) {
+      await sb.from('deals').insert(deal);
+    }
+    toast('All deals reset to default ✓');
+    await loadAllData();
+    go('deals', false);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+// ============================================================
 //  🖼️ BANNERS
 // ============================================================
 let bannerImageFile = null;
@@ -1964,8 +2271,8 @@ function renderSettings() {
     </div>
     <div class="section">
       <h3>About</h3>
-      <p style="color:var(--muted)">Sukkur Bazar Admin Panel v1.0</p>
-      <p style="color:var(--muted);font-size:12px">Manage your marketplace, sellers, products, orders, categories, coupons, banners and support settings.</p>
+      <p style="color:var(--muted)">Sukkur Bazar Admin Panel v2.0</p>
+      <p style="color:var(--muted);font-size:12px">Manage your marketplace, sellers, products, orders, categories, coupons, deals, banners and support settings.</p>
     </div>
   `;
 }
@@ -2050,9 +2357,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('🛡️ Sukkur Bazar Admin Panel Loaded!');
-console.log('📂 Manage: Sellers, Products, Orders, Customers, Categories, Coupons, Banners, Support');
+console.log('🛡️ Sukkur Bazar Admin Panel v2.0 Loaded!');
+console.log('📂 Manage: Sellers, Products, Orders, Customers, Categories, Coupons, Deals, Banners, Support');
 console.log('🔗 Connected to Supabase:', SUPABASE_URL);
+console.log('🏷️ Deals Management: 4 shopping app deals can be managed here!');
 </script>
 </body>
 </html>
