@@ -316,7 +316,7 @@ button { cursor: pointer; border: 0; }
 .page-title h1 { font-size: 27px; margin: 0; }
 .page-title p { margin: 5px 0 0; color: var(--muted); }
 
-/* STATS CARDS */
+/* STATS CARDS - Clickable */
 .cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -328,6 +328,13 @@ button { cursor: pointer; border: 0; }
   border-radius: 17px;
   padding: 16px;
   box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(14,91,62,.15);
+  border-color: var(--green);
 }
 .stat .ic { font-size: 25px; }
 .stat b { display: block; font-size: 24px; margin-top: 8px; }
@@ -358,6 +365,15 @@ table th, table td {
 table th { color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 800; }
 table tr:hover { background: #f8faf9; }
 
+/* Clickable Table Rows */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.clickable-row:hover {
+  background: #edf5f1 !important;
+}
+
 /* BADGES */
 .pill {
   display: inline-block;
@@ -372,7 +388,47 @@ table tr:hover { background: #f8faf9; }
 .pill.blue { background: #e3edf7; color: #1a5a8c; }
 .pill.gray { background: #f0f0f0; color: #666; }
 
-/* GRID (Categories, Products) */
+/* ORDER DETAIL */
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.order-detail-box {
+  background: #f8faf9;
+  border-radius: 14px;
+  padding: 14px;
+}
+.order-detail-box h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.order-detail-box .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.order-detail-box .row:last-child { border-bottom: 0; }
+.order-detail-box .row b { color: var(--text); }
+.order-items-list {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  margin-top: 8px;
+}
+.order-items-list .item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.order-items-list .item:last-child { border-bottom: 0; }
+.order-items-list .item .seller-tag {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* GRID */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -421,31 +477,7 @@ table tr:hover { background: #f8faf9; }
 .cat-card .cat-actions .edit { background: #edf5f1; color: var(--green); }
 .cat-card .cat-actions .delete { background: #fff0f0; color: var(--danger); }
 
-/* COUPON CARD */
-.coupon-card {
-  border: 2px dashed var(--gold);
-  border-radius: 17px;
-  padding: 18px;
-  text-align: center;
-  background: #fffdf5;
-}
-.coupon-card .code {
-  font-size: 28px;
-  font-weight: 900;
-  color: var(--green);
-  letter-spacing: 2px;
-}
-.coupon-card .discount {
-  font-size: 22px;
-  color: var(--danger);
-  font-weight: 900;
-}
-.coupon-card .valid {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* COUPON CARD - ADMIN VIEW */
+/* COUPON */
 .coupon-admin {
   border: 1px solid var(--line);
   border-radius: 17px;
@@ -473,7 +505,7 @@ table tr:hover { background: #f8faf9; }
   padding: 14px;
 }
 .modal {
-  width: min(680px, 100%);
+  width: min(720px, 100%);
   max-height: 92vh;
   overflow: auto;
   background: #fff;
@@ -570,6 +602,7 @@ table tr:hover { background: #f8faf9; }
   .layout { grid-template-columns: 200px minmax(0, 1fr); }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .order-detail-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .sidebar { display: none; }
@@ -587,6 +620,7 @@ table tr:hover { background: #f8faf9; }
   .brand { font-size: 17px; }
   .brand small { display: none; }
   .top-actions .user-info { display: none; }
+  .order-detail-grid { grid-template-columns: 1fr; }
   .mobile-nav {
     position: fixed;
     bottom: 0;
@@ -621,7 +655,7 @@ table tr:hover { background: #f8faf9; }
   .auth-card { padding: 20px; }
 }
 
-/* DRAWER (Mobile) */
+/* DRAWER */
 .drawer-back {
   position: fixed;
   inset: 0;
@@ -772,7 +806,7 @@ table tr:hover { background: #f8faf9; }
 
 <script>
 // ============================================================
-//  🔥 SUPABASE CONFIGURATION (ALREADY CONNECTED)
+//  🔥 SUPABASE CONFIGURATION
 // ============================================================
 const SUPABASE_URL = 'https://xltyakylnntzlxhcggil.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_obLweb6F_j_8Q_tpTjWZpQ_PJG3Tt1I';
@@ -1102,6 +1136,9 @@ function pageHead(title, sub, btn = '') {
   `;
 }
 
+// ============================================================
+//  🏠 DASHBOARD (Clickable Stats)
+// ============================================================
 function renderDashboard() {
   const totalSellers = state.sellers.length;
   const totalProducts = state.products.length;
@@ -1110,8 +1147,10 @@ function renderDashboard() {
   const pendingProducts = state.products.filter(p => p.status === 'pending').length;
   const pendingSellers = state.sellers.filter(s => s.status === 'pending').length;
 
+  // Recent Orders - Clickable
   let recentOrders = state.orders.slice(0, 5).map(o => `
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:0.15s;border-radius:8px;padding:10px;background:#fff;margin-bottom:4px;hover:background:#f5f8f6"
+         onclick="viewOrderDetail('${o.id}')">
       <span><b>${esc(o.order_number || o.id)}</b> · ${esc(o.customer_name)}</span>
       <span><span class="pill ${o.status === 'New' ? 'gold' : 'green'}">${esc(o.status || 'New')}</span> ${money(o.total)}</span>
     </div>
@@ -1119,23 +1158,49 @@ function renderDashboard() {
 
   return pageHead('Dashboard', 'Welcome to Sukkur Bazar Admin Panel') + `
     <div class="cards">
-      <div class="stat"><div class="ic">👥</div><b>${totalSellers}</b><span>Total Sellers</span></div>
-      <div class="stat"><div class="ic">📦</div><b>${totalProducts}</b><span>Total Products</span></div>
-      <div class="stat"><div class="ic">🛒</div><b>${totalOrders}</b><span>Total Orders</span></div>
-      <div class="stat"><div class="ic">💰</div><b>${money(revenue)}</b><span>Total Revenue</span></div>
+      <div class="stat" onclick="go('sellers')">
+        <div class="ic">👥</div>
+        <b>${totalSellers}</b>
+        <span>Total Sellers → Click</span>
+      </div>
+      <div class="stat" onclick="go('products')">
+        <div class="ic">📦</div>
+        <b>${totalProducts}</b>
+        <span>Total Products → Click</span>
+      </div>
+      <div class="stat" onclick="go('orders')">
+        <div class="ic">🛒</div>
+        <b>${totalOrders}</b>
+        <span>Total Orders → Click</span>
+      </div>
+      <div class="stat" onclick="go('orders')">
+        <div class="ic">💰</div>
+        <b>${money(revenue)}</b>
+        <span>Total Revenue → Click</span>
+      </div>
     </div>
     <div class="cards" style="margin-top:13px">
-      <div class="stat"><div class="ic">⏳</div><b>${pendingProducts}</b><span>Pending Products</span></div>
-      <div class="stat"><div class="ic">⏳</div><b>${pendingSellers}</b><span>Pending Sellers</span></div>
+      <div class="stat" onclick="go('products')">
+        <div class="ic">⏳</div>
+        <b>${pendingProducts}</b>
+        <span>Pending Products → Click</span>
+      </div>
+      <div class="stat" onclick="go('sellers')">
+        <div class="ic">⏳</div>
+        <b>${pendingSellers}</b>
+        <span>Pending Sellers → Click</span>
+      </div>
     </div>
     <div class="section">
-      <h3>📋 Recent Orders</h3>
+      <h3>📋 Recent Orders <span style="font-size:12px;color:var(--muted);font-weight:400">(Click to view details)</span></h3>
       ${recentOrders}
     </div>
   `;
 }
 
-// ----- SELLERS -----
+// ============================================================
+//  👥 SELLERS
+// ============================================================
 function renderSellers() {
   const list = state.sellers.map(s => `
     <tr>
@@ -1180,7 +1245,9 @@ async function blockSeller(id) {
   go('sellers', false);
 }
 
-// ----- PRODUCTS -----
+// ============================================================
+//  📦 PRODUCTS
+// ============================================================
 function renderProducts() {
   const list = state.products.map(p => `
     <tr>
@@ -1234,17 +1301,19 @@ async function deleteProduct(id) {
   go('products', false);
 }
 
-// ----- ORDERS -----
+// ============================================================
+//  🛒 ORDERS (Clickable Rows)
+// ============================================================
 function renderOrders() {
   const list = state.orders.map(o => `
-    <tr>
+    <tr class="clickable-row" onclick="viewOrderDetail('${o.id}')">
       <td><b>${esc(o.order_number || o.id)}</b></td>
       <td>${esc(o.customer_name)}</td>
       <td>${esc(o.customer_phone)}</td>
       <td>${money(o.total)}</td>
       <td><span class="pill ${o.status === 'New' ? 'gold' : o.status === 'Delivered' ? 'green' : o.status === 'Cancelled' ? 'red' : 'blue'}">${esc(o.status || 'New')}</span></td>
       <td>
-        <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:11px">
+        <select onclick="event.stopPropagation();" onchange="updateOrderStatus('${o.id}', this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:11px">
           <option value="New" ${o.status === 'New' ? 'selected' : ''}>New</option>
           <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
           <option value="Ready" ${o.status === 'Ready' ? 'selected' : ''}>Ready</option>
@@ -1256,7 +1325,7 @@ function renderOrders() {
     </tr>
   `).join('') || '<tr><td colspan="6" class="empty">No orders found.</td></tr>';
 
-  return pageHead('🛒 Orders', 'Manage all customer orders') + `
+  return pageHead('🛒 Orders', 'Click on any order to view full details') + `
     <div class="section">
       <div class="table-wrap">
         <table>
@@ -1268,15 +1337,131 @@ function renderOrders() {
   `;
 }
 
+// ============================================================
+//  📋 ORDER DETAIL - FULL DETAIL MODAL
+// ============================================================
+function viewOrderDetail(orderId) {
+  const o = state.orders.find(x => x.id === orderId);
+  if (!o) {
+    toast('Order not found', true);
+    return;
+  }
+
+  // Fetch order items with seller info
+  const orderItems = state.orderItems?.[orderId] || [];
+
+  // Build customer details
+  const customerHtml = `
+    <div class="order-detail-box">
+      <h4>👤 Customer Details</h4>
+      <div class="row"><span>Name</span><b>${esc(o.customer_name)}</b></div>
+      <div class="row"><span>Phone</span><b>${esc(o.customer_phone)}</b></div>
+      <div class="row"><span>Address</span><b>${esc(o.delivery_address || 'N/A')}</b></div>
+    </div>
+  `;
+
+  // Build order details
+  const orderHtml = `
+    <div class="order-detail-box">
+      <h4>📋 Order Details</h4>
+      <div class="row"><span>Order #</span><b>${esc(o.order_number || o.id)}</b></div>
+      <div class="row"><span>Date</span><b>${o.created_at ? new Date(o.created_at).toLocaleString('en-PK') : 'N/A'}</b></div>
+      <div class="row"><span>Status</span><span class="pill ${o.status === 'New' ? 'gold' : o.status === 'Delivered' ? 'green' : o.status === 'Cancelled' ? 'red' : 'blue'}">${esc(o.status || 'New')}</span></div>
+      <div class="row"><span>Payment</span><b>${esc(o.payment || 'Cash on Delivery')}</b></div>
+      <div class="row"><span>Delivery</span><b>${esc(o.delivery || 'Sukkur Bazar Delivery')}</b></div>
+      <div class="row"><span>Total Amount</span><b style="font-size:18px;color:var(--green)">${money(o.total)}</b></div>
+    </div>
+  `;
+
+  // Build products list with seller names
+  let productsHtml = '<div class="order-detail-box" style="grid-column: 1 / -1;"><h4>📦 Products</h4><div class="order-items-list">';
+  
+  if (orderItems.length > 0) {
+    orderItems.forEach(item => {
+      const sellerName = item.seller_name || 'Unknown Seller';
+      productsHtml += `
+        <div class="item">
+          <div>
+            <b>${esc(item.product_name)}</b>
+            <div class="seller-tag">🏪 ${esc(sellerName)}</div>
+          </div>
+          <div>
+            ${esc(item.quantity)} × ${money(item.price)} = <b>${money(item.quantity * item.price)}</b>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    // Fallback: Try to show from shops array if available
+    if (o.shops && o.shops.length > 0) {
+      o.shops.forEach(shop => {
+        shop.items.forEach(item => {
+          productsHtml += `
+            <div class="item">
+              <div>
+                <b>${esc(item.name)}</b>
+                <div class="seller-tag">🏪 ${esc(shop.shop)}</div>
+              </div>
+              <div>
+                ${esc(item.qty)} × ${money(item.price)} = <b>${money(item.qty * item.price)}</b>
+              </div>
+            </div>
+          `;
+        });
+      });
+    } else {
+      productsHtml += '<div class="empty">No products found for this order.</div>';
+    }
+  }
+  
+  productsHtml += '</div></div>';
+
+  const modalBody = `
+    <div class="order-detail-grid">
+      ${customerHtml}
+      ${orderHtml}
+      ${productsHtml}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="outline" onclick="closeModal()">Close</button>
+      <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:10px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px">
+        <option value="New" ${o.status === 'New' ? 'selected' : ''}>New</option>
+        <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+        <option value="Ready" ${o.status === 'Ready' ? 'selected' : ''}>Ready</option>
+        <option value="Out for Delivery" ${o.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+        <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+        <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+      </select>
+      <button class="primary" onclick="updateOrderStatusFromModal('${o.id}')">Update Status</button>
+    </div>
+  `;
+
+  modal(`📋 Order #${esc(o.order_number || o.id)}`, modalBody);
+}
+
+// Store the current order ID for modal status update
+let currentModalOrderId = null;
+
+function updateOrderStatusFromModal(id) {
+  const select = document.querySelector('.modal-body select');
+  if (!select) return;
+  const status = select.value;
+  updateOrderStatus(id, status);
+  closeModal();
+}
+
 async function updateOrderStatus(id, status) {
   const { error } = await sb.from('orders').update({ status }).eq('id', id);
   if (error) return toast(error.message, true);
   toast('Order status updated ✓');
   await loadAllData();
-  go('orders', false);
+  // Refresh current page
+  go(state.page, false);
 }
 
-// ----- CUSTOMERS -----
+// ============================================================
+//  👤 CUSTOMERS
+// ============================================================
 function renderCustomers() {
   const list = state.customers.map(c => `
     <tr>
@@ -1299,7 +1484,9 @@ function renderCustomers() {
   `;
 }
 
-// ----- CATEGORIES (with Image Upload) -----
+// ============================================================
+//  📂 CATEGORIES
+// ============================================================
 let categoryImageFile = null;
 let categoryImagePreview = '';
 
@@ -1450,7 +1637,9 @@ async function deleteCategory(id) {
   go('categories', false);
 }
 
-// ----- COUPONS -----
+// ============================================================
+//  💰 COUPONS
+// ============================================================
 function renderCoupons() {
   const list = state.coupons.map(c => `
     <div class="coupon-admin">
@@ -1546,7 +1735,9 @@ async function deleteCoupon(id) {
   go('coupons', false);
 }
 
-// ----- BANNERS -----
+// ============================================================
+//  🖼️ BANNERS
+// ============================================================
 let bannerImageFile = null;
 let bannerImagePreview = '';
 
@@ -1693,7 +1884,9 @@ async function deleteBanner(id) {
   go('banners', false);
 }
 
-// ----- SUPPORT (Social Links) -----
+// ============================================================
+//  🆘 SUPPORT
+// ============================================================
 function renderSupport() {
   const s = state.support || {};
   return pageHead('🆘 Help & Support Settings', 'Manage social links and contact information') + `
@@ -1757,7 +1950,9 @@ async function saveSupport(e) {
   go('support', false);
 }
 
-// ----- SETTINGS -----
+// ============================================================
+//  ⚙️ SETTINGS
+// ============================================================
 function renderSettings() {
   return pageHead('⚙️ Settings', 'Admin panel settings') + `
     <div class="section">
