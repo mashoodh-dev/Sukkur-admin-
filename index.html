@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sukkur Bazar — Admin Panel</title>
+<style>
+/* ===== ROOT VARIABLES ===== */
+:root {
+  --green: #0e5b3e;
+  --green2: #16704e;
+  --gold: #d4af37;
+  --cream: #f8f3e5;
+  --bg: #f5f7f6;
+  --card: #fff;
+  --text: #173126;
+  --muted: #718078;
+  --line: #e6ebe8;
+  --danger: #c94747;
+  --shadow: 0 8px 28px rgba(14,91,62,.10);
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: 0; }
+.hidden { display: none !important; }
+
+/* ===== SPLASH SCREEN ===== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(145deg, #0a4d35, #0e5b3e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: splashAutoHide .35s ease 2.6s forwards;
+}
+.splash-box { text-align: center; animation: pop .7s ease; }
+.logo-mark {
+  width: 100px; height: 100px;
+  border-radius: 28px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  margin: auto;
+  box-shadow: 0 16px 40px rgba(0,0,0,.2);
+  font-size: 65px;
+  font-weight: 900;
+  color: var(--gold);
+}
+.splash h1 { margin: 18px 0 5px; font-size: 34px; }
+.splash h1 span { color: var(--gold); }
+.splash p { color: #e8e5d8; }
+.loader {
+  width: 90px; height: 4px;
+  background: rgba(255,255,255,.25);
+  margin: 25px auto 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.loader i {
+  display: block;
+  height: 100%;
+  width: 45%;
+  background: var(--gold);
+  animation: load 1.6s infinite;
+}
+@keyframes load { to { transform: translateX(210%); } }
+@keyframes splashAutoHide { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+
+/* ===== AUTH SCREEN ===== */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: linear-gradient(145deg, #0a4d35, #0e5b3e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  overflow: auto;
+}
+.auth-card {
+  width: min(430px, 100%);
+  background: #fff;
+  border-radius: 25px;
+  padding: 24px;
+  box-shadow: 0 20px 70px #0005;
+  max-height: 92vh;
+  overflow: auto;
+}
+.auth-logo {
+  width: 70px; height: 70px;
+  border-radius: 20px;
+  background: var(--green);
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 45px;
+  margin: 0 auto 12px;
+}
+.auth-card h2 { text-align: center; margin: 5px 0; }
+.auth-card > p { text-align: center; color: var(--muted); font-size: 13px; }
+.auth-tabs {
+  display: flex;
+  background: #f1f5f3;
+  border-radius: 12px;
+  padding: 4px;
+  margin: 16px 0;
+}
+.auth-tabs button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+.auth-tabs button.active {
+  background: #fff;
+  color: var(--green);
+  box-shadow: 0 2px 8px #0000000d;
+}
+.auth-sep {
+  text-align: center;
+  color: var(--muted);
+  padding: 8px 0;
+  font-size: 12px;
+}
+.google-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 13px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.google-btn:before { content: "🔵"; font-size: 20px; }
+
+/* ===== FORM ===== */
+.form { display: grid; gap: 11px; }
+.form label { font-size: 12px; font-weight: 700; color: var(--text); }
+.form input, .form select, .form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dbe3df;
+  border-radius: 11px;
+  outline: 0;
+  background: #fff;
+  color: var(--text);
+}
+.form input:focus, .form select:focus, .form textarea:focus {
+  border-color: var(--green);
+}
+.form textarea { min-height: 80px; resize: vertical; }
+.primary {
+  width: 100%;
+  padding: 14px;
+  border-radius: 13px;
+  background: var(--green);
+  color: #fff;
+  font-weight: 900;
+}
+.primary:hover { background: var(--green2); }
+.outline {
+  padding: 12px 16px;
+  border-radius: 11px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--green);
+  font-weight: 800;
+}
+.outline:hover { background: var(--cream); }
+.danger {
+  background: var(--danger);
+  color: #fff;
+}
+.danger:hover { background: #b33; }
+
+/* ===== ADMIN APP ===== */
+.admin-app {
+  display: none;
+  min-height: 100vh;
+}
+
+/* TOP BAR */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--green);
+  color: white;
+}
+.topbar {
+  max-width: 1400px;
+  margin: auto;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.brand {
+  font-weight: 900;
+  font-size: 21px;
+  white-space: nowrap;
+}
+.brand span { color: var(--gold); }
+.brand small { font-size: 12px; font-weight: 400; opacity: 0.8; }
+.top-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.top-actions .user-info {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-right: 8px;
+}
+.icon-btn {
+  background: rgba(255,255,255,.12);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+}
+.icon-btn:hover { background: rgba(255,255,255,.2); }
+.icon-btn.danger:hover { background: var(--danger); }
+
+/* LAYOUT */
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  max-width: 1400px;
+  margin: auto;
+}
+
+/* SIDEBAR */
+.sidebar {
+  min-height: calc(100vh - 68px);
+  background: #fff;
+  border-right: 1px solid var(--line);
+  padding: 16px 12px;
+  position: sticky;
+  top: 68px;
+  height: calc(100vh - 68px);
+  overflow: auto;
+}
+.sidebar .admin-card {
+  background: var(--cream);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.sidebar .admin-card .avatar {
+  font-size: 40px;
+}
+.sidebar .admin-card .name {
+  font-weight: 900;
+  margin-top: 4px;
+}
+.sidebar .admin-card .email {
+  font-size: 12px;
+  color: var(--muted);
+}
+.nav {
+  display: grid;
+  gap: 3px;
+}
+.nav button {
+  background: transparent;
+  color: #52675e;
+  text-align: left;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.nav button:hover { background: #e9f3ee; color: var(--green); }
+.nav button.active {
+  background: #e9f3ee;
+  color: var(--green);
+}
+.nav button .icon { margin-right: 8px; }
+
+/* CONTENT */
+.content {
+  padding: 20px;
+  min-width: 0;
+}
+.page-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.page-title h1 { font-size: 27px; margin: 0; }
+.page-title p { margin: 5px 0 0; color: var(--muted); }
+
+/* STATS CARDS */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+.stat {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.stat .ic { font-size: 25px; }
+.stat b { display: block; font-size: 24px; margin-top: 8px; }
+.stat span { font-size: 12px; color: var(--muted); }
+
+/* SECTION */
+.section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 17px;
+  margin-top: 16px;
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+.section h3 { margin: 0 0 13px; }
+
+/* TABLE */
+.table-wrap { overflow: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+table th, table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  vertical-align: middle;
+}
+table th { color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 800; }
+table tr:hover { background: #f8faf9; }
+
+/* BADGES */
+.pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.pill.green { background: #eaf5ef; color: var(--green); }
+.pill.gold { background: #fff6d9; color: #8b7114; }
+.pill.red { background: #ffe9e9; color: #a72d2d; }
+.pill.blue { background: #e3edf7; color: #1a5a8c; }
+.pill.gray { background: #f0f0f0; color: #666; }
+
+/* GRID (Categories, Products) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* CATEGORY CARD */
+.cat-card {
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  overflow: hidden;
+  background: #fff;
+  transition: 0.2s;
+}
+.cat-card:hover { box-shadow: var(--shadow); }
+.cat-card .cat-image {
+  height: 130px;
+  background: var(--cream);
+  display: grid;
+  place-items: center;
+  font-size: 50px;
+  overflow: hidden;
+}
+.cat-card .cat-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cat-card .cat-body { padding: 13px; }
+.cat-card .cat-body h4 { margin: 0 0 5px; }
+.cat-card .cat-body .muted { font-size: 12px; color: var(--muted); }
+.cat-card .cat-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+.cat-card .cat-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 12px;
+}
+.cat-card .cat-actions .edit { background: #edf5f1; color: var(--green); }
+.cat-card .cat-actions .delete { background: #fff0f0; color: var(--danger); }
+
+/* COUPON CARD */
+.coupon-card {
+  border: 2px dashed var(--gold);
+  border-radius: 17px;
+  padding: 18px;
+  text-align: center;
+  background: #fffdf5;
+}
+.coupon-card .code {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+.coupon-card .discount {
+  font-size: 22px;
+  color: var(--danger);
+  font-weight: 900;
+}
+.coupon-card .valid {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* COUPON CARD - ADMIN VIEW */
+.coupon-admin {
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.coupon-admin .info { flex: 1; }
+.coupon-admin .info .code { font-weight: 900; font-size: 18px; color: var(--green); }
+.coupon-admin .info .discount { font-weight: 900; color: var(--danger); }
+.coupon-admin .info .valid { font-size: 12px; color: var(--muted); }
+
+/* MODAL */
+.modal-back {
+  position: fixed;
+  inset: 0;
+  background: #0008;
+  z-index: 80000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+.modal {
+  width: min(680px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 23px;
+  box-shadow: 0 20px 60px #0004;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 17px 18px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+.modal-head h2 { margin: 0; font-size: 20px; }
+.modal-body { padding: 18px; }
+.close {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f0f4f2;
+  color: #173c30;
+  font-size: 20px;
+}
+.close:hover { background: #e0e8e4; }
+
+/* IMAGE PREVIEW */
+.img-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.img-preview {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f7faf8;
+  aspect-ratio: 1;
+}
+.img-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.img-preview .remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--danger);
+  font-weight: 900;
+  font-size: 14px;
+}
+
+/* TOAST */
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120000;
+  text-align: center;
+}
+.toast {
+  background: #173c30;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 8px 30px #0003;
+  display: inline-block;
+}
+.toast.error { background: var(--danger); }
+
+/* EMPTY STATE */
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--muted);
+}
+
+/* RESPONSIVE */
+@media (max-width: 1000px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .layout { grid-template-columns: 200px minmax(0, 1fr); }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .layout { display: block; }
+  .content { padding: 13px 11px 90px; }
+  .cards { grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  .stat { padding: 13px; }
+  .stat b { font-size: 19px; }
+  .page-title h1 { font-size: 22px; }
+  .grid { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .cat-card .cat-image { height: 100px; }
+  .topbar { flex-wrap: wrap; padding: 10px; }
+  .brand { font-size: 17px; }
+  .brand small { display: none; }
+  .top-actions .user-info { display: none; }
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    z-index: 70;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .mobile-nav button {
+    background: #fff;
+    color: #687870;
+    font-size: 10px;
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .mobile-nav button .icon { font-size: 20px; }
+  .mobile-nav button.active { color: var(--green); }
+}
+@media (max-width: 430px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+  .cards { grid-template-columns: 1fr 1fr; }
+  .modal { max-height: 94vh; border-radius: 22px 22px 0 0; }
+  .modal-body { padding: 14px; }
+  .auth-card { padding: 20px; }
+}
+
+/* DRAWER (Mobile) */
+.drawer-back {
+  position: fixed;
+  inset: 0;
+  background: #0007;
+  z-index: 500;
+  display: none;
+}
+.drawer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(330px, 88vw);
+  background: #fff;
+  box-shadow: 15px 0 40px #0004;
+  padding: 18px;
+  overflow: auto;
+}
+.drawer-brand {
+  background: linear-gradient(135deg, var(--green), var(--green2));
+  color: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 15px;
+}
+.drawer-brand b { font-size: 21px; }
+.drawer-brand span { color: var(--gold); }
+.drawer a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border-radius: 11px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+  margin: 3px 0;
+}
+.drawer a:hover { background: var(--cream); color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ===== SPLASH ===== -->
+<div id="splash" class="splash">
+  <div class="splash-box">
+    <div class="logo-mark">S</div>
+    <h1>SUKKUR <span>BAZAR</span></h1>
+    <p>Admin Panel · Manage Your Marketplace</p>
+    <div class="loader"><i></i></div>
+  </div>
+</div>
+
+<!-- ===== AUTH ===== -->
+<div id="authRoot" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">S</div>
+    <h2>SUKKUR BAZAR</h2>
+    <p>Admin Login · Manage Your Marketplace</p>
+    <div class="auth-tabs">
+      <button id="loginTab" class="active" onclick="authMode('login')">Login</button>
+      <button id="signupTab" onclick="authMode('signup')">Sign Up</button>
+    </div>
+    <div id="authForm"></div>
+  </div>
+</div>
+
+<!-- ===== ADMIN APP ===== -->
+<div id="adminApp" class="admin-app">
+
+  <!-- TOP BAR -->
+  <header class="top">
+    <div class="topbar">
+      <button class="icon-btn" onclick="openDrawer()" style="background:transparent;padding:5px 8px;font-size:24px">☰</button>
+      <div class="brand">SUKKUR <span>BAZAR</span> <small>Admin</small></div>
+      <div class="top-actions">
+        <span class="user-info" id="adminName">Admin</span>
+        <button class="icon-btn danger" onclick="logout()">🚪</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="admin-card">
+        <div class="avatar">🛡️</div>
+        <div class="name" id="sideName">Admin</div>
+        <div class="email" id="sideEmail">admin@sukkur.com</div>
+      </div>
+      <nav class="nav" id="mainNav">
+        <button class="active" data-page="dashboard" onclick="go('dashboard')"><span class="icon">📊</span>Dashboard</button>
+        <button data-page="sellers" onclick="go('sellers')"><span class="icon">👥</span>Sellers</button>
+        <button data-page="products" onclick="go('products')"><span class="icon">📦</span>Products</button>
+        <button data-page="orders" onclick="go('orders')"><span class="icon">🛒</span>Orders</button>
+        <button data-page="customers" onclick="go('customers')"><span class="icon">👤</span>Customers</button>
+        <button data-page="categories" onclick="go('categories')"><span class="icon">📂</span>Categories</button>
+        <button data-page="coupons" onclick="go('coupons')"><span class="icon">💰</span>Coupons</button>
+        <button data-page="banners" onclick="go('banners')"><span class="icon">🖼️</span>Banners</button>
+        <button data-page="support" onclick="go('support')"><span class="icon">🆘</span>Support</button>
+        <button data-page="settings" onclick="go('settings')"><span class="icon">⚙️</span>Settings</button>
+      </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="root" class="content"></main>
+  </div>
+
+  <!-- MOBILE NAV -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="active" data-page="dashboard" onclick="go('dashboard')"><span class="icon">📊</span>Home</button>
+    <button data-page="sellers" onclick="go('sellers')"><span class="icon">👥</span>Sellers</button>
+    <button data-page="products" onclick="go('products')"><span class="icon">📦</span>Products</button>
+    <button data-page="orders" onclick="go('orders')"><span class="icon">🛒</span>Orders</button>
+  </nav>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div id="modalRoot"></div>
+
+<!-- ===== DRAWER (Mobile) ===== -->
+<div id="drawerRoot" class="drawer-back" onclick="if(event.target===this)closeDrawer()">
+  <aside class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-brand">
+      <b>SUKKUR <span>BAZAR</span></b>
+      <div style="font-size:12px;margin-top:5px;opacity:0.8">Admin Panel</div>
+    </div>
+    <a onclick="closeDrawer();go('dashboard')">📊 Dashboard</a>
+    <a onclick="closeDrawer();go('sellers')">👥 Sellers</a>
+    <a onclick="closeDrawer();go('products')">📦 Products</a>
+    <a onclick="closeDrawer();go('orders')">🛒 Orders</a>
+    <a onclick="closeDrawer();go('customers')">👤 Customers</a>
+    <a onclick="closeDrawer();go('categories')">📂 Categories</a>
+    <a onclick="closeDrawer();go('coupons')">💰 Coupons</a>
+    <a onclick="closeDrawer();go('banners')">🖼️ Banners</a>
+    <a onclick="closeDrawer();go('support')">🆘 Support</a>
+    <a onclick="closeDrawer();go('settings')">⚙️ Settings</a>
+    <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+    <a onclick="closeDrawer();logout()">🚪 Logout</a>
+  </aside>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ===== SUPABASE ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ============================================================
+//  🔥 SUPABASE CONFIGURATION (ALREADY CONNECTED)
+// ============================================================
+const SUPABASE_URL = 'https://xltyakylnntzlxhcggil.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_obLweb6F_j_8Q_tpTjWZpQ_PJG3Tt1I';
+const ADMIN_EMAIL = 'admin@sukkur.com';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+
+// ============================================================
+//  STATE
+// ============================================================
+let state = {
+  user: null,
+  page: 'dashboard',
+  categories: [],
+  coupons: [],
+  banners: [],
+  support: {},
+  sellers: [],
+  products: [],
+  orders: [],
+  customers: []
+};
+
+const KEY = 'sukkur_bazar_admin_v1';
+
+// ============================================================
+//  UTILITY FUNCTIONS
+// ============================================================
+function esc(str) {
+  return String(str ?? '').replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+function money(n) {
+  return 'Rs. ' + Number(n || 0).toLocaleString('en-PK');
+}
+
+function toast(msg, error = false) {
+  const container = document.getElementById('toastContainer');
+  container.innerHTML = `<div class="toast ${error ? 'error' : ''}">${esc(msg)}</div>`;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { container.innerHTML = ''; }, 2500);
+}
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function load() {
+  try {
+    const data = localStorage.getItem(KEY);
+    if (data) state = { ...state, ...JSON.parse(data) };
+  } catch (e) {}
+}
+load();
+
+// ============================================================
+//  AUTH SYSTEM
+// ============================================================
+let authModeState = 'login';
+let authHandling = false;
+
+function authMode(mode) {
+  authModeState = mode;
+  document.getElementById('loginTab').classList.toggle('active', mode === 'login');
+  document.getElementById('signupTab').classList.toggle('active', mode === 'signup');
+  renderAuthForm();
+}
+
+function renderAuthForm() {
+  const form = document.getElementById('authForm');
+  if (authModeState === 'login') {
+    form.innerHTML = `
+      <form class="form" onsubmit="submitAuth(event, 'login')">
+        <label>Email</label>
+        <input id="authEmail" type="email" placeholder="admin@sukkur.com" required value="${ADMIN_EMAIL}">
+        <label>Password</label>
+        <input id="authPass" type="password" placeholder="Enter password" required>
+        <button class="primary" type="submit">Login to Admin</button>
+        <div class="auth-sep">OR</div>
+        <button type="button" class="google-btn" onclick="googleAuth()">Continue with Google</button>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Simple admin access. No complex permissions.</div>
+      </form>
+    `;
+  } else {
+    form.innerHTML = `
+      <form class="form" onsubmit="submitAuth(event, 'signup')">
+        <label>Full Name</label>
+        <input id="authName" placeholder="Admin Name" required>
+        <label>Email</label>
+        <input id="authEmail" type="email" placeholder="admin@sukkur.com" required>
+        <label>Password</label>
+        <input id="authPass" type="password" placeholder="Create password" required>
+        <label>Confirm Password</label>
+        <input id="authPass2" type="password" placeholder="Confirm password" required>
+        <button class="primary" type="submit">Create Admin Account</button>
+        <div class="auth-sep">OR</div>
+        <button type="button" class="google-btn" onclick="googleAuth()">Sign up with Google</button>
+      </form>
+    `;
+  }
+}
+
+async function submitAuth(e, mode) {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('authPass').value;
+
+  if (!email || !pass) return toast('Please enter email and password', true);
+
+  if (mode === 'signup') {
+    const pass2 = document.getElementById('authPass2').value;
+    if (pass !== pass2) return toast('Passwords do not match', true);
+    const name = document.getElementById('authName').value.trim();
+    const { data, error } = await sb.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, role: 'admin' } }
+    });
+    if (error) return toast(error.message, true);
+    if (data.user) {
+      await sb.from('profiles').upsert({
+        id: data.user.id,
+        email: email,
+        full_name: name,
+        role: 'admin'
+      }, { onConflict: 'id' });
+      toast('Admin account created! Please login.');
+      authMode('login');
+    }
+    return;
+  }
+
+  // Login
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) return toast(error.message, true);
+  if (data.user) {
+    await handleAdminLogin(data.user);
+  }
+}
+
+async function googleAuth() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if (error) toast(error.message, true);
+}
+
+async function handleAdminLogin(user) {
+  if (authHandling) return;
+  authHandling = true;
+  try {
+    const { data: profile } = await sb.from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isAdmin = profile?.role === 'admin';
+    const isDefaultAdmin = user.email?.toLowerCase() === ADMIN_EMAIL;
+
+    if (!isAdmin && !isDefaultAdmin) {
+      await sb.auth.signOut();
+      toast('Access denied. Admin only.', true);
+      authHandling = false;
+      return;
+    }
+
+    if (!isAdmin && isDefaultAdmin) {
+      await sb.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || 'Admin',
+        role: 'admin'
+      }, { onConflict: 'id' });
+    }
+
+    state.user = {
+      id: user.id,
+      email: user.email,
+      name: user.user_metadata?.full_name || profile?.full_name || 'Admin'
+    };
+    save();
+
+    document.getElementById('authRoot').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    document.getElementById('splash').style.display = 'none';
+
+    document.getElementById('sideName').textContent = state.user.name;
+    document.getElementById('sideEmail').textContent = state.user.email;
+    document.getElementById('adminName').textContent = state.user.name;
+
+    await loadAllData();
+    go('dashboard');
+    toast('Welcome to Admin Panel ✓');
+
+  } catch (e) {
+    console.error('Admin login error:', e);
+    toast('Login failed: ' + e.message, true);
+  }
+  authHandling = false;
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  state.user = null;
+  save();
+  document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('authRoot').style.display = 'flex';
+  toast('Logged out ✓');
+}
+
+// ============================================================
+//  SUPABASE DATA LOADING
+// ============================================================
+async function loadAllData() {
+  try {
+    const { data: categories } = await sb.from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    state.categories = categories || [];
+
+    const { data: coupons } = await sb.from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false });
+    state.coupons = coupons || [];
+
+    const { data: banners } = await sb.from('banner_ads')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    state.banners = banners || [];
+
+    const { data: support } = await sb.from('support_settings')
+      .select('*')
+      .maybeSingle();
+    state.support = support || {};
+
+    const { data: profiles } = await sb.from('profiles')
+      .select('*')
+      .in('role', ['seller', 'admin'])
+      .order('created_at', { ascending: false });
+    state.sellers = profiles || [];
+
+    const { data: products } = await sb.from('products')
+      .select('*, shops(name), categories(name)')
+      .order('created_at', { ascending: false });
+    state.products = products || [];
+
+    const { data: orders } = await sb.from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    state.orders = orders || [];
+
+    const { data: customers } = await sb.from('profiles')
+      .select('*')
+      .eq('role', 'customer')
+      .order('created_at', { ascending: false });
+    state.customers = customers || [];
+
+    save();
+  } catch (e) {
+    console.error('Load data error:', e);
+    toast('Failed to load data: ' + e.message, true);
+  }
+}
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+let pageStack = [];
+
+function go(page, push = true) {
+  if (push && state.page && state.page !== page) pageStack.push(state.page);
+  state.page = page;
+  save();
+
+  document.querySelectorAll('[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+
+  const root = document.getElementById('root');
+  const pages = {
+    dashboard: renderDashboard,
+    sellers: renderSellers,
+    products: renderProducts,
+    orders: renderOrders,
+    customers: renderCustomers,
+    categories: renderCategories,
+    coupons: renderCoupons,
+    banners: renderBanners,
+    support: renderSupport,
+    settings: renderSettings
+  };
+
+  root.innerHTML = (pages[page] || renderDashboard)();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBack() {
+  if (document.getElementById('modalRoot').innerHTML) {
+    closeModal();
+    return;
+  }
+  if (pageStack.length) {
+    const prev = pageStack.pop();
+    go(prev, false);
+  } else {
+    go('dashboard', false);
+  }
+}
+
+// ============================================================
+//  RENDER FUNCTIONS
+// ============================================================
+
+function pageHead(title, sub, btn = '') {
+  return `
+    <div class="page-title">
+      <div>
+        <h1>${title}</h1>
+        ${sub ? `<p>${sub}</p>` : ''}
+      </div>
+      <div>${btn}</div>
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  const totalSellers = state.sellers.length;
+  const totalProducts = state.products.length;
+  const totalOrders = state.orders.length;
+  const revenue = state.orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const pendingProducts = state.products.filter(p => p.status === 'pending').length;
+  const pendingSellers = state.sellers.filter(s => s.status === 'pending').length;
+
+  let recentOrders = state.orders.slice(0, 5).map(o => `
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)">
+      <span><b>${esc(o.order_number || o.id)}</b> · ${esc(o.customer_name)}</span>
+      <span><span class="pill ${o.status === 'New' ? 'gold' : 'green'}">${esc(o.status || 'New')}</span> ${money(o.total)}</span>
+    </div>
+  `).join('') || '<div class="empty">No orders yet.</div>';
+
+  return pageHead('Dashboard', 'Welcome to Sukkur Bazar Admin Panel') + `
+    <div class="cards">
+      <div class="stat"><div class="ic">👥</div><b>${totalSellers}</b><span>Total Sellers</span></div>
+      <div class="stat"><div class="ic">📦</div><b>${totalProducts}</b><span>Total Products</span></div>
+      <div class="stat"><div class="ic">🛒</div><b>${totalOrders}</b><span>Total Orders</span></div>
+      <div class="stat"><div class="ic">💰</div><b>${money(revenue)}</b><span>Total Revenue</span></div>
+    </div>
+    <div class="cards" style="margin-top:13px">
+      <div class="stat"><div class="ic">⏳</div><b>${pendingProducts}</b><span>Pending Products</span></div>
+      <div class="stat"><div class="ic">⏳</div><b>${pendingSellers}</b><span>Pending Sellers</span></div>
+    </div>
+    <div class="section">
+      <h3>📋 Recent Orders</h3>
+      ${recentOrders}
+    </div>
+  `;
+}
+
+// ----- SELLERS -----
+function renderSellers() {
+  const list = state.sellers.map(s => `
+    <tr>
+      <td><b>${esc(s.full_name || 'N/A')}</b></td>
+      <td>${esc(s.email)}</td>
+      <td>${esc(s.phone || '—')}</td>
+      <td><span class="pill ${s.role === 'admin' ? 'gold' : 'green'}">${esc(s.role || 'seller')}</span></td>
+      <td><span class="pill ${s.status === 'approved' ? 'green' : s.status === 'blocked' ? 'red' : 'gold'}">${esc(s.status || 'pending')}</span></td>
+      <td>
+        ${s.status !== 'approved' ? `<button class="outline" style="padding:5px 10px;font-size:11px" onclick="approveSeller('${s.id}')">✅ Approve</button>` : ''}
+        ${s.status !== 'blocked' ? `<button class="outline" style="padding:5px 10px;font-size:11px;color:var(--danger)" onclick="blockSeller('${s.id}')">🚫 Block</button>` : ''}
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="empty">No sellers found.</td></tr>';
+
+  return pageHead('👥 Sellers', 'Manage all sellers on the platform') + `
+    <div class="section">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${list}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function approveSeller(id) {
+  const { error } = await sb.from('profiles').update({ status: 'approved' }).eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Seller approved ✓');
+  await loadAllData();
+  go('sellers', false);
+}
+
+async function blockSeller(id) {
+  if (!confirm('Block this seller?')) return;
+  const { error } = await sb.from('profiles').update({ status: 'blocked' }).eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Seller blocked ✓');
+  await loadAllData();
+  go('sellers', false);
+}
+
+// ----- PRODUCTS -----
+function renderProducts() {
+  const list = state.products.map(p => `
+    <tr>
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.shops?.name || 'N/A')}</td>
+      <td>${esc(p.categories?.name || 'Other')}</td>
+      <td>${money(p.price)}</td>
+      <td><span class="pill ${p.status === 'approved' ? 'green' : p.status === 'rejected' ? 'red' : 'gold'}">${esc(p.status || 'pending')}</span></td>
+      <td>
+        ${p.status !== 'approved' ? `<button class="outline" style="padding:5px 10px;font-size:11px" onclick="approveProduct('${p.id}')">✅ Approve</button>` : ''}
+        ${p.status !== 'rejected' ? `<button class="outline" style="padding:5px 10px;font-size:11px;color:var(--danger)" onclick="rejectProduct('${p.id}')">❌ Reject</button>` : ''}
+        <button class="outline" style="padding:5px 10px;font-size:11px;color:var(--danger)" onclick="deleteProduct('${p.id}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="empty">No products found.</td></tr>';
+
+  return pageHead('📦 Products', 'Manage all products on the platform') + `
+    <div class="section">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Shop</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${list}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function approveProduct(id) {
+  const { error } = await sb.from('products').update({ status: 'approved' }).eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Product approved ✓');
+  await loadAllData();
+  go('products', false);
+}
+
+async function rejectProduct(id) {
+  const { error } = await sb.from('products').update({ status: 'rejected' }).eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Product rejected ✓');
+  await loadAllData();
+  go('products', false);
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product permanently?')) return;
+  const { error } = await sb.from('products').delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Product deleted ✓');
+  await loadAllData();
+  go('products', false);
+}
+
+// ----- ORDERS -----
+function renderOrders() {
+  const list = state.orders.map(o => `
+    <tr>
+      <td><b>${esc(o.order_number || o.id)}</b></td>
+      <td>${esc(o.customer_name)}</td>
+      <td>${esc(o.customer_phone)}</td>
+      <td>${money(o.total)}</td>
+      <td><span class="pill ${o.status === 'New' ? 'gold' : o.status === 'Delivered' ? 'green' : o.status === 'Cancelled' ? 'red' : 'blue'}">${esc(o.status || 'New')}</span></td>
+      <td>
+        <select onchange="updateOrderStatus('${o.id}', this.value)" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:11px">
+          <option value="New" ${o.status === 'New' ? 'selected' : ''}>New</option>
+          <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+          <option value="Ready" ${o.status === 'Ready' ? 'selected' : ''}>Ready</option>
+          <option value="Out for Delivery" ${o.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+          <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+          <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+        </select>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="empty">No orders found.</td></tr>';
+
+  return pageHead('🛒 Orders', 'Manage all customer orders') + `
+    <div class="section">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order #</th><th>Customer</th><th>Phone</th><th>Total</th><th>Status</th><th>Update</th></tr></thead>
+          <tbody>${list}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+async function updateOrderStatus(id, status) {
+  const { error } = await sb.from('orders').update({ status }).eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Order status updated ✓');
+  await loadAllData();
+  go('orders', false);
+}
+
+// ----- CUSTOMERS -----
+function renderCustomers() {
+  const list = state.customers.map(c => `
+    <tr>
+      <td><b>${esc(c.full_name || 'N/A')}</b></td>
+      <td>${esc(c.email)}</td>
+      <td>${esc(c.phone || '—')}</td>
+      <td>${c.created_at ? new Date(c.created_at).toLocaleDateString('en-PK') : '—'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="empty">No customers found.</td></tr>';
+
+  return pageHead('👤 Customers', 'View all registered customers') + `
+    <div class="section">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+          <tbody>${list}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ----- CATEGORIES (with Image Upload) -----
+let categoryImageFile = null;
+let categoryImagePreview = '';
+
+function renderCategories() {
+  const list = state.categories.map(c => `
+    <div class="cat-card">
+      <div class="cat-image">
+        ${c.image_url ? `<img src="${esc(c.image_url)}" alt="${esc(c.name)}">` : esc(c.icon || '📂')}
+      </div>
+      <div class="cat-body">
+        <h4>${esc(c.name)}</h4>
+        <div class="muted">${c.icon ? 'Icon: ' + esc(c.icon) : 'No icon'}</div>
+        <div><span class="pill ${c.is_active !== false ? 'green' : 'red'}">${c.is_active !== false ? 'Active' : 'Inactive'}</span></div>
+        <div class="cat-actions">
+          <button class="edit" onclick="openCategory('${c.id}')">✏️ Edit</button>
+          <button class="delete" onclick="deleteCategory('${c.id}')">🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No categories found. Add your first category!</div>';
+
+  return pageHead('📂 Categories', 'Manage product categories with images', `
+    <button class="primary" style="width:auto;padding:11px 16px" onclick="openCategory()">＋ Add Category</button>
+  `) + `
+    <div class="grid">${list}</div>
+  `;
+}
+
+function openCategory(id = null) {
+  const cat = id ? state.categories.find(c => c.id === id) : null;
+  const name = cat?.name || '';
+  const icon = cat?.icon || '';
+  const imageUrl = cat?.image_url || '';
+  const isActive = cat?.is_active !== false;
+  const sortOrder = cat?.sort_order || 0;
+
+  categoryImagePreview = imageUrl || '';
+  categoryImageFile = null;
+
+  const title = id ? 'Edit Category' : 'Add New Category';
+
+  modal(title, `
+    <form class="form" onsubmit="saveCategory(event, '${id || ''}')">
+      <label>Category Name</label>
+      <input id="catName" value="${esc(name)}" required placeholder="e.g. Grocery">
+
+      <label>Category Icon (Emoji)</label>
+      <input id="catIcon" value="${esc(icon)}" placeholder="e.g. 🛒">
+
+      <label>Category Image (Upload from gallery)</label>
+      <input type="file" accept="image/*" onchange="previewCategoryImage(this.files[0])">
+      <div id="catImagePreview" class="img-preview-grid">
+        ${imageUrl ? `<div class="img-preview"><img src="${esc(imageUrl)}"><button type="button" class="remove" onclick="removeCategoryImage()">×</button></div>` : ''}
+      </div>
+
+      <label>Status</label>
+      <select id="catStatus">
+        <option value="active" ${isActive ? 'selected' : ''}>Active</option>
+        <option value="inactive" ${!isActive ? 'selected' : ''}>Inactive</option>
+      </select>
+
+      <label>Sort Order</label>
+      <input id="catSort" type="number" value="${sortOrder}" min="0">
+
+      <button class="primary" type="submit">${id ? 'Update' : 'Add'} Category</button>
+    </form>
+  `);
+}
+
+function previewCategoryImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    categoryImagePreview = e.target.result;
+    categoryImageFile = file;
+    const preview = document.getElementById('catImagePreview');
+    if (preview) {
+      preview.innerHTML = `<div class="img-preview"><img src="${e.target.result}"><button type="button" class="remove" onclick="removeCategoryImage()">×</button></div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCategoryImage() {
+  categoryImagePreview = '';
+  categoryImageFile = null;
+  const preview = document.getElementById('catImagePreview');
+  if (preview) preview.innerHTML = '';
+}
+
+async function saveCategory(e, id) {
+  e.preventDefault();
+  const name = document.getElementById('catName').value.trim();
+  const icon = document.getElementById('catIcon').value.trim();
+  const isActive = document.getElementById('catStatus').value === 'active';
+  const sortOrder = parseInt(document.getElementById('catSort').value) || 0;
+
+  if (!name) return toast('Please enter category name', true);
+
+  try {
+    let imageUrl = categoryImagePreview;
+
+    if (categoryImageFile && categoryImageFile instanceof File) {
+      const fileExt = categoryImageFile.name.split('.').pop();
+      const fileName = `categories/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await sb.storage
+        .from('category-images')
+        .upload(fileName, categoryImageFile);
+      if (uploadError) throw new Error(uploadError.message);
+      const { data: urlData } = sb.storage.from('category-images').getPublicUrl(fileName);
+      imageUrl = urlData?.publicUrl || categoryImagePreview;
+    }
+
+    const payload = {
+      name,
+      icon: icon || name.charAt(0).toUpperCase(),
+      image_url: imageUrl || null,
+      is_active: isActive,
+      sort_order: sortOrder
+    };
+
+    let error;
+    if (id) {
+      const { error: updateError } = await sb.from('categories').update(payload).eq('id', id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await sb.from('categories').insert(payload);
+      error = insertError;
+    }
+
+    if (error) throw new Error(error.message);
+
+    toast(id ? 'Category updated ✓' : 'Category added ✓');
+    closeModal();
+    await loadAllData();
+    go('categories', false);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+async function deleteCategory(id) {
+  if (!confirm('Delete this category?')) return;
+  const { error } = await sb.from('categories').delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Category deleted ✓');
+  await loadAllData();
+  go('categories', false);
+}
+
+// ----- COUPONS -----
+function renderCoupons() {
+  const list = state.coupons.map(c => `
+    <div class="coupon-admin">
+      <div class="info">
+        <div class="code">🎫 ${esc(c.code)}</div>
+        <div class="discount">${c.discount_percent}% OFF</div>
+        <div class="valid">Valid till: ${c.valid_till ? new Date(c.valid_till).toLocaleDateString('en-PK') : 'N/A'}</div>
+      </div>
+      <div>
+        <span class="pill ${c.is_active !== false ? 'green' : 'red'}">${c.is_active !== false ? 'Active' : 'Inactive'}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="outline" style="padding:6px 12px;font-size:12px" onclick="openCoupon('${c.id}')">✏️</button>
+        <button class="outline" style="padding:6px 12px;font-size:12px;color:var(--danger)" onclick="deleteCoupon('${c.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No coupons found. Add sale offers!</div>';
+
+  return pageHead('💰 Coupons / Sale Offers', 'Manage discount coupons for customers', `
+    <button class="primary" style="width:auto;padding:11px 16px" onclick="openCoupon()">＋ Add Coupon</button>
+  `) + `
+    <div class="section">${list}</div>
+  `;
+}
+
+function openCoupon(id = null) {
+  const c = id ? state.coupons.find(cp => cp.id === id) : null;
+  const code = c?.code || '';
+  const discount = c?.discount_percent || 0;
+  const validTill = c?.valid_till ? c.valid_till.split('T')[0] : '';
+  const isActive = c?.is_active !== false;
+
+  modal(id ? 'Edit Coupon' : 'Add Coupon', `
+    <form class="form" onsubmit="saveCoupon(event, '${id || ''}')">
+      <label>Coupon Code</label>
+      <input id="couponCode" value="${esc(code)}" required placeholder="e.g. SALE50" style="text-transform:uppercase">
+
+      <label>Discount Percentage</label>
+      <input id="couponDiscount" type="number" value="${discount}" min="1" max="100" required placeholder="e.g. 50">
+
+      <label>Valid Till</label>
+      <input id="couponValid" type="date" value="${validTill}" required>
+
+      <label>Status</label>
+      <select id="couponStatus">
+        <option value="active" ${isActive ? 'selected' : ''}>Active</option>
+        <option value="inactive" ${!isActive ? 'selected' : ''}>Inactive</option>
+      </select>
+
+      <button class="primary" type="submit">${id ? 'Update' : 'Add'} Coupon</button>
+    </form>
+  `);
+}
+
+async function saveCoupon(e, id) {
+  e.preventDefault();
+  const code = document.getElementById('couponCode').value.trim().toUpperCase();
+  const discount = parseInt(document.getElementById('couponDiscount').value);
+  const validTill = document.getElementById('couponValid').value;
+  const isActive = document.getElementById('couponStatus').value === 'active';
+
+  if (!code) return toast('Enter coupon code', true);
+  if (!discount || discount < 1 || discount > 100) return toast('Enter valid discount (1-100)', true);
+  if (!validTill) return toast('Select valid till date', true);
+
+  const payload = { code, discount_percent: discount, valid_till: validTill, is_active: isActive };
+
+  try {
+    let error;
+    if (id) {
+      const { error: updateError } = await sb.from('coupons').update(payload).eq('id', id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await sb.from('coupons').insert(payload);
+      error = insertError;
+    }
+    if (error) throw new Error(error.message);
+    toast(id ? 'Coupon updated ✓' : 'Coupon added ✓');
+    closeModal();
+    await loadAllData();
+    go('coupons', false);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+async function deleteCoupon(id) {
+  if (!confirm('Delete this coupon?')) return;
+  const { error } = await sb.from('coupons').delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Coupon deleted ✓');
+  await loadAllData();
+  go('coupons', false);
+}
+
+// ----- BANNERS -----
+let bannerImageFile = null;
+let bannerImagePreview = '';
+
+function renderBanners() {
+  const list = state.banners.map(b => `
+    <div class="cat-card">
+      <div class="cat-image">
+        ${b.image_url ? `<img src="${esc(b.image_url)}" alt="${esc(b.title)}">` : '🖼️'}
+      </div>
+      <div class="cat-body">
+        <h4>${esc(b.title || 'Untitled')}</h4>
+        <div class="muted">${esc(b.description || '')}</div>
+        <div><span class="pill ${b.is_active !== false ? 'green' : 'red'}">${b.is_active !== false ? 'Active' : 'Inactive'}</span></div>
+        <div class="cat-actions">
+          <button class="edit" onclick="openBanner('${b.id}')">✏️ Edit</button>
+          <button class="delete" onclick="deleteBanner('${b.id}')">🗑️ Delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No banners found.</div>';
+
+  return pageHead('🖼️ Banners', 'Manage home page banners', `
+    <button class="primary" style="width:auto;padding:11px 16px" onclick="openBanner()">＋ Add Banner</button>
+  `) + `
+    <div class="grid">${list}</div>
+  `;
+}
+
+function openBanner(id = null) {
+  const b = id ? state.banners.find(bn => bn.id === id) : null;
+  bannerImagePreview = b?.image_url || '';
+  bannerImageFile = null;
+
+  modal(id ? 'Edit Banner' : 'Add Banner', `
+    <form class="form" onsubmit="saveBanner(event, '${id || ''}')">
+      <label>Title</label>
+      <input id="bannerTitle" value="${esc(b?.title || '')}" required>
+
+      <label>Description</label>
+      <textarea id="bannerDesc">${esc(b?.description || '')}</textarea>
+
+      <label>Banner Image</label>
+      <input type="file" accept="image/*" onchange="previewBannerImage(this.files[0])">
+      <div id="bannerImagePreview" class="img-preview-grid">
+        ${bannerImagePreview ? `<div class="img-preview"><img src="${esc(bannerImagePreview)}"><button type="button" class="remove" onclick="removeBannerImage()">×</button></div>` : ''}
+      </div>
+
+      <label>Link URL (optional)</label>
+      <input id="bannerLink" value="${esc(b?.link_url || '')}" placeholder="https://...">
+
+      <label>Status</label>
+      <select id="bannerStatus">
+        <option value="active" ${b?.is_active !== false ? 'selected' : ''}>Active</option>
+        <option value="inactive" ${b?.is_active === false ? 'selected' : ''}>Inactive</option>
+      </select>
+
+      <label>Sort Order</label>
+      <input id="bannerSort" type="number" value="${b?.sort_order || 0}" min="0">
+
+      <button class="primary" type="submit">${id ? 'Update' : 'Add'} Banner</button>
+    </form>
+  `);
+}
+
+function previewBannerImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    bannerImagePreview = e.target.result;
+    bannerImageFile = file;
+    const preview = document.getElementById('bannerImagePreview');
+    if (preview) {
+      preview.innerHTML = `<div class="img-preview"><img src="${e.target.result}"><button type="button" class="remove" onclick="removeBannerImage()">×</button></div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeBannerImage() {
+  bannerImagePreview = '';
+  bannerImageFile = null;
+  const preview = document.getElementById('bannerImagePreview');
+  if (preview) preview.innerHTML = '';
+}
+
+async function saveBanner(e, id) {
+  e.preventDefault();
+  const title = document.getElementById('bannerTitle').value.trim();
+  const description = document.getElementById('bannerDesc').value.trim();
+  const linkUrl = document.getElementById('bannerLink').value.trim();
+  const isActive = document.getElementById('bannerStatus').value === 'active';
+  const sortOrder = parseInt(document.getElementById('bannerSort').value) || 0;
+
+  if (!title) return toast('Enter banner title', true);
+
+  try {
+    let imageUrl = bannerImagePreview;
+
+    if (bannerImageFile && bannerImageFile instanceof File) {
+      const fileExt = bannerImageFile.name.split('.').pop();
+      const fileName = `banners/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await sb.storage
+        .from('banner-images')
+        .upload(fileName, bannerImageFile);
+      if (uploadError) throw new Error(uploadError.message);
+      const { data: urlData } = sb.storage.from('banner-images').getPublicUrl(fileName);
+      imageUrl = urlData?.publicUrl || bannerImagePreview;
+    }
+
+    const payload = {
+      title,
+      description,
+      image_url: imageUrl || null,
+      link_url: linkUrl || null,
+      is_active: isActive,
+      sort_order: sortOrder
+    };
+
+    let error;
+    if (id) {
+      const { error: updateError } = await sb.from('banner_ads').update(payload).eq('id', id);
+      error = updateError;
+    } else {
+      const { error: insertError } = await sb.from('banner_ads').insert(payload);
+      error = insertError;
+    }
+
+    if (error) throw new Error(error.message);
+    toast(id ? 'Banner updated ✓' : 'Banner added ✓');
+    closeModal();
+    await loadAllData();
+    go('banners', false);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+async function deleteBanner(id) {
+  if (!confirm('Delete this banner?')) return;
+  const { error } = await sb.from('banner_ads').delete().eq('id', id);
+  if (error) return toast(error.message, true);
+  toast('Banner deleted ✓');
+  await loadAllData();
+  go('banners', false);
+}
+
+// ----- SUPPORT (Social Links) -----
+function renderSupport() {
+  const s = state.support || {};
+  return pageHead('🆘 Help & Support Settings', 'Manage social links and contact information') + `
+    <div class="section">
+      <form class="form" onsubmit="saveSupport(event)">
+        <label>📘 Facebook URL</label>
+        <input id="supportFacebook" value="${esc(s.facebook_url || '')}" placeholder="https://facebook.com/sukkur">
+
+        <label>📸 Instagram URL</label>
+        <input id="supportInstagram" value="${esc(s.instagram_url || '')}" placeholder="https://instagram.com/sukkur">
+
+        <label>💬 WhatsApp Number</label>
+        <input id="supportWhatsapp" value="${esc(s.whatsapp_number || '')}" placeholder="+92 300 1234567">
+
+        <label>▶️ YouTube URL</label>
+        <input id="supportYoutube" value="${esc(s.youtube_url || '')}" placeholder="https://youtube.com/sukkur">
+
+        <label>📧 Support Email</label>
+        <input id="supportEmail" value="${esc(s.support_email || '')}" placeholder="support@sukkur.com" type="email">
+
+        <label>📞 Support Phone</label>
+        <input id="supportPhone" value="${esc(s.support_phone || '')}" placeholder="+92 300 1234567">
+
+        <button class="primary" type="submit">Save Support Settings</button>
+      </form>
+    </div>
+    <div class="section">
+      <h3>Preview on Shopping App Footer</h3>
+      <div style="background:#f5f7f6;padding:15px;border-radius:12px">
+        <div style="display:flex;gap:15px;flex-wrap:wrap">
+          ${s.facebook_url ? `<a href="${esc(s.facebook_url)}" target="_blank">📘 Facebook</a>` : ''}
+          ${s.instagram_url ? `<a href="${esc(s.instagram_url)}" target="_blank">📸 Instagram</a>` : ''}
+          ${s.whatsapp_number ? `<a href="https://wa.me/${esc(s.whatsapp_number.replace(/[^0-9]/g,''))}" target="_blank">💬 WhatsApp</a>` : ''}
+          ${s.youtube_url ? `<a href="${esc(s.youtube_url)}" target="_blank">▶️ YouTube</a>` : ''}
+          ${s.support_email ? `<a href="mailto:${esc(s.support_email)}">📧 Email</a>` : ''}
+          ${s.support_phone ? `<a href="tel:${esc(s.support_phone.replace(/[^0-9+]/g,''))}">📞 Call</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveSupport(e) {
+  e.preventDefault();
+  const payload = {
+    facebook_url: document.getElementById('supportFacebook').value.trim(),
+    instagram_url: document.getElementById('supportInstagram').value.trim(),
+    whatsapp_number: document.getElementById('supportWhatsapp').value.trim(),
+    youtube_url: document.getElementById('supportYoutube').value.trim(),
+    support_email: document.getElementById('supportEmail').value.trim(),
+    support_phone: document.getElementById('supportPhone').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await sb.from('support_settings')
+    .upsert(payload, { onConflict: 'id' });
+
+  if (error) return toast(error.message, true);
+  toast('Support settings saved ✓');
+  await loadAllData();
+  go('support', false);
+}
+
+// ----- SETTINGS -----
+function renderSettings() {
+  return pageHead('⚙️ Settings', 'Admin panel settings') + `
+    <div class="section">
+      <h3>Account</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)">
+        <span><b>${esc(state.user?.name || 'Admin')}</b><br><span style="color:var(--muted);font-size:12px">${esc(state.user?.email || '')}</span></span>
+        <button class="outline" style="padding:8px 14px" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>About</h3>
+      <p style="color:var(--muted)">Sukkur Bazar Admin Panel v1.0</p>
+      <p style="color:var(--muted);font-size:12px">Manage your marketplace, sellers, products, orders, categories, coupons, banners and support settings.</p>
+    </div>
+  `;
+}
+
+// ============================================================
+//  MODAL
+// ============================================================
+function modal(title, body) {
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-back" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <div class="modal-head">
+          <h2>${title}</h2>
+          <button class="close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+      </div>
+    </div>
+  `;
+}
+
+function closeModal() {
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+// ============================================================
+//  DRAWER
+// ============================================================
+function openDrawer() {
+  document.getElementById('drawerRoot').style.display = 'block';
+}
+
+function closeDrawer() {
+  document.getElementById('drawerRoot').style.display = 'none';
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+renderAuthForm();
+
+(async function init() {
+  const { data } = await sb.auth.getSession();
+  if (data?.session?.user) {
+    const user = data.session.user;
+    const { data: profile } = await sb.from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile?.role === 'admin' || user.email?.toLowerCase() === ADMIN_EMAIL) {
+      await handleAdminLogin(user);
+      return;
+    }
+  }
+
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('authRoot').style.display = 'flex';
+})();
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+    setTimeout(() => {
+      (async () => {
+        const user = session.user;
+        const { data: profile } = await sb.from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (profile?.role === 'admin' || user.email?.toLowerCase() === ADMIN_EMAIL) {
+          await handleAdminLogin(user);
+        }
+      })();
+    }, 100);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeDrawer();
+  }
+});
+
+console.log('🛡️ Sukkur Bazar Admin Panel Loaded!');
+console.log('📂 Manage: Sellers, Products, Orders, Customers, Categories, Coupons, Banners, Support');
+console.log('🔗 Connected to Supabase:', SUPABASE_URL);
+</script>
+</body>
+</html>
