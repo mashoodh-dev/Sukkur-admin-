@@ -1084,7 +1084,7 @@ async function logout() {
 }
 
 // ============================================================
-//  SUPABASE DATA LOADING
+//  SUPABASE DATA LOADING (ALL TABLES)
 // ============================================================
 async function loadAllData() {
   try {
@@ -1100,7 +1100,7 @@ async function loadAllData() {
       .order('created_at', { ascending: false });
     state.coupons = coupons || [];
 
-    // Deals (Shopping app deals)
+    // Deals
     const { data: deals } = await sb.from('deals')
       .select('*')
       .order('sort_order', { ascending: true });
@@ -1118,7 +1118,7 @@ async function loadAllData() {
       .maybeSingle();
     state.support = support || {};
 
-    // Sellers (profiles with role = 'seller' or 'admin')
+    // Sellers
     const { data: profiles } = await sb.from('profiles')
       .select('*')
       .in('role', ['seller', 'admin'])
@@ -1137,7 +1137,7 @@ async function loadAllData() {
       .order('created_at', { ascending: false });
     state.orders = orders || [];
 
-    // Order Items (with seller info)
+    // Order Items
     if (state.orders.length > 0) {
       const orderIds = state.orders.map(o => o.id);
       const { data: orderItems } = await sb.from('order_items')
@@ -1148,7 +1148,7 @@ async function loadAllData() {
       state.orderItems = [];
     }
 
-    // Customers (profiles with role = 'customer')
+    // Customers
     const { data: customers } = await sb.from('profiles')
       .select('*')
       .eq('role', 'customer')
@@ -1393,9 +1393,8 @@ async function deleteProduct(id) {
 // ============================================================
 function renderOrders() {
   const list = state.orders.map(o => {
-    // Count items for this order
     const items = state.orderItems?.filter(i => i.order_id === o.id) || [];
-    const itemCount = items.length;
+    const itemCount = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
     return `
     <tr class="clickable-row" onclick="viewOrderDetail('${o.id}')">
       <td><b>${esc(o.order_number || o.id)}</b></td>
@@ -1439,10 +1438,8 @@ function viewOrderDetail(orderId) {
     return;
   }
 
-  // Get order items for this order
   const items = state.orderItems?.filter(i => i.order_id === orderId) || [];
 
-  // Customer details
   const customerHtml = `
     <div class="order-detail-box">
       <h4>👤 Customer Details</h4>
@@ -1452,7 +1449,6 @@ function viewOrderDetail(orderId) {
     </div>
   `;
 
-  // Order details
   const orderHtml = `
     <div class="order-detail-box">
       <h4>📋 Order Details</h4>
@@ -1465,12 +1461,10 @@ function viewOrderDetail(orderId) {
     </div>
   `;
 
-  // Products list with seller names
   let productsHtml = '<div class="order-detail-box" style="grid-column: 1 / -1;"><h4>📦 Products <span style="font-size:12px;color:var(--muted);font-weight:400">(with seller details)</span></h4><div class="order-items-list">';
   
   if (items.length > 0) {
     items.forEach(item => {
-      // Find seller name from profiles
       const seller = state.sellers.find(s => s.id === item.seller_id);
       const sellerName = seller?.full_name || 'Unknown Seller';
       productsHtml += `
@@ -1485,11 +1479,10 @@ function viewOrderDetail(orderId) {
         </div>
       `;
     });
-    // Add total items count
     const totalItems = items.reduce((sum, i) => sum + (i.quantity || 0), 0);
     productsHtml += `<div style="padding:8px 0;font-weight:800;text-align:right;border-top:2px solid var(--line);margin-top:6px">Total Items: ${totalItems}</div>`;
   } else {
-    productsHtml += '<div class="empty">⚠️ No products found for this order. Order items may not be linked properly.</div>';
+    productsHtml += '<div class="empty">⚠️ No products found for this order.</div>';
   }
   
   productsHtml += '</div></div>';
@@ -1810,10 +1803,9 @@ async function deleteCoupon(id) {
 }
 
 // ============================================================
-//  🏷️ DEALS - Shopping App Ke 4 Deals Manage Karne Ka System
+//  🏷️ DEALS - SHOPPING APP KE 4 DEALS (FIXED WITH UPSERT)
 // ============================================================
 function renderDeals() {
-  // Default deals if none exist
   const defaultDeals = [
     { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true, sort_order: 1 },
     { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true, sort_order: 2 },
@@ -1855,7 +1847,6 @@ function renderDeals() {
 
 function openDeal(id = null) {
   const d = id ? state.deals.find(dl => dl.id === id) : null;
-  // If deal is default and not in DB, use default values
   let deal = d;
   if (!deal && id && id.startsWith('deal')) {
     const defaults = [
@@ -1902,6 +1893,7 @@ function openDeal(id = null) {
   `);
 }
 
+// ✅ FIXED: UPSERT use kiya (insert/update auto)
 async function saveDeal(e, id) {
   e.preventDefault();
   const title = document.getElementById('dealTitle').value.trim();
@@ -1913,8 +1905,8 @@ async function saveDeal(e, id) {
 
   if (!title) return toast('Please enter deal title', true);
 
-  const payload = {
-    title,
+  let payload = {
+    title: title,
     subtitle: subtitle || null,
     icon: icon || '🏷️',
     discount: discount || null,
@@ -1923,19 +1915,10 @@ async function saveDeal(e, id) {
     sort_order: state.deals.length + 1
   };
 
+  if (id) payload.id = id;
+
   try {
-    let error;
-    if (id && !id.startsWith('deal')) {
-      const { error: updateError } = await sb.from('deals').update(payload).eq('id', id);
-      error = updateError;
-    } else if (id && id.startsWith('deal')) {
-      // This is a default deal, create it in DB
-      const { error: insertError } = await sb.from('deals').insert({ ...payload, id: id });
-      error = insertError;
-    } else {
-      const { error: insertError } = await sb.from('deals').insert(payload);
-      error = insertError;
-    }
+    const { error } = await sb.from('deals').upsert(payload, { onConflict: 'id' });
     if (error) throw new Error(error.message);
     toast(id ? 'Deal updated ✓' : 'Deal added ✓');
     closeModal();
@@ -1950,7 +1933,6 @@ async function toggleDeal(id) {
   const deal = state.deals.find(d => d.id === id);
   const newStatus = deal ? !deal.is_active : false;
   
-  // If default deal not in DB, create it first
   if (!deal && id.startsWith('deal')) {
     const defaults = [
       { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics' },
@@ -1960,11 +1942,7 @@ async function toggleDeal(id) {
     ];
     const def = defaults.find(d => d.id === id);
     if (def) {
-      const { error } = await sb.from('deals').insert({
-        ...def,
-        is_active: false,
-        sort_order: parseInt(id.replace('deal', ''))
-      });
+      const { error } = await sb.from('deals').upsert({ ...def, is_active: false, sort_order: parseInt(id.replace('deal', '')) }, { onConflict: 'id' });
       if (error) return toast(error.message, true);
       toast('Deal created in DB and toggled ✓');
       await loadAllData();
@@ -1974,9 +1952,7 @@ async function toggleDeal(id) {
     return;
   }
 
-  const { error } = await sb.from('deals')
-    .update({ is_active: newStatus })
-    .eq('id', id);
+  const { error } = await sb.from('deals').update({ is_active: newStatus }).eq('id', id);
   if (error) return toast(error.message, true);
   toast(`Deal ${newStatus ? 'activated' : 'deactivated'} ✓`);
   await loadAllData();
@@ -2003,13 +1979,12 @@ async function resetDeal(id) {
   const def = defaults.find(d => d.id === id);
   if (!def) return toast('Default deal not found', true);
 
-  // Check if exists in DB
   const existing = state.deals.find(d => d.id === id);
   if (existing) {
     const { error } = await sb.from('deals').update(def).eq('id', id);
     if (error) return toast(error.message, true);
   } else {
-    const { error } = await sb.from('deals').insert(def);
+    const { error } = await sb.from('deals').upsert(def, { onConflict: 'id' });
     if (error) return toast(error.message, true);
   }
   toast('Deal reset to default ✓');
@@ -2018,8 +1993,7 @@ async function resetDeal(id) {
 }
 
 async function resetAllDeals() {
-  if (!confirm('Reset ALL deals to default? This will overwrite any custom changes.')) return;
-  
+  if (!confirm('Reset ALL deals to default?')) return;
   const defaults = [
     { id: 'deal1', title: 'Up to 50%', subtitle: 'Beauty & Cosmetics', icon: '🔥', discount: '50%', category: 'Beauty & Cosmetics', is_active: true, sort_order: 1 },
     { id: 'deal2', title: 'Daily Deals', subtitle: 'Grocery essentials', icon: '🛒', discount: '30%', category: 'Grocery', is_active: true, sort_order: 2 },
@@ -2028,11 +2002,8 @@ async function resetAllDeals() {
   ];
 
   try {
-    // Clear existing deals
-    await sb.from('deals').delete().neq('id', '');
-    // Insert defaults
     for (const deal of defaults) {
-      await sb.from('deals').insert(deal);
+      await sb.from('deals').upsert(deal, { onConflict: 'id' });
     }
     toast('All deals reset to default ✓');
     await loadAllData();
@@ -2149,7 +2120,13 @@ async function saveBanner(e, id) {
       const { error: uploadError } = await sb.storage
         .from('banner-images')
         .upload(fileName, bannerImageFile);
-      if (uploadError) throw new Error(uploadError.message);
+      if (uploadError) {
+        // If bucket doesn't exist, show helpful message
+        if (uploadError.message.includes('bucket not found')) {
+          throw new Error('Storage bucket "banner-images" not found. Please create it in Supabase Storage.');
+        }
+        throw new Error(uploadError.message);
+      }
       const { data: urlData } = sb.storage.from('banner-images').getPublicUrl(fileName);
       imageUrl = urlData?.publicUrl || bannerImagePreview;
     }
@@ -2360,7 +2337,7 @@ document.addEventListener('keydown', (e) => {
 console.log('🛡️ Sukkur Bazar Admin Panel v2.0 Loaded!');
 console.log('📂 Manage: Sellers, Products, Orders, Customers, Categories, Coupons, Deals, Banners, Support');
 console.log('🔗 Connected to Supabase:', SUPABASE_URL);
-console.log('🏷️ Deals Management: 4 shopping app deals can be managed here!');
+console.log('🏷️ Deals Management: Shopping app deals can be managed here!');
 </script>
 </body>
 </html>
