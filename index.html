@@ -1163,12 +1163,17 @@ async function loadAllData() {
 }
 
 // ============================================================
-//  NAVIGATION
+//  NAVIGATION WITH BACK BUTTON
 // ============================================================
 let pageStack = [];
 
 function go(page, push = true) {
-  if (push && state.page && state.page !== page) pageStack.push(state.page);
+  if (push && state.page && state.page !== page) {
+    // Don't push dashboard as previous page if coming from back
+    if (state.page !== 'dashboard') {
+      pageStack.push(state.page);
+    }
+  }
   state.page = page;
   save();
 
@@ -1200,7 +1205,7 @@ function goBack() {
     closeModal();
     return;
   }
-  if (pageStack.length) {
+  if (pageStack.length > 0) {
     const prev = pageStack.pop();
     go(prev, false);
   } else {
@@ -1209,17 +1214,20 @@ function goBack() {
 }
 
 // ============================================================
-//  RENDER FUNCTIONS
+//  RENDER FUNCTIONS WITH BACK BUTTON
 // ============================================================
 
 function pageHead(title, sub, btn = '') {
+  const backBtn = state.page !== 'dashboard' 
+    ? `<button class="outline" style="width:auto;padding:10px 14px;margin-right:8px" onclick="goBack()">← Back</button>` 
+    : '';
   return `
     <div class="page-title">
       <div>
         <h1>${title}</h1>
         ${sub ? `<p>${sub}</p>` : ''}
       </div>
-      <div>${btn}</div>
+      <div style="display:flex;align-items:center">${backBtn}${btn}</div>
     </div>
   `;
 }
@@ -1552,7 +1560,7 @@ function renderCustomers() {
 }
 
 // ============================================================
-//  📂 CATEGORIES
+//  📂 CATEGORIES (Base64 Upload)
 // ============================================================
 let categoryImageFile = null;
 let categoryImagePreview = '';
@@ -1657,14 +1665,8 @@ async function saveCategory(e, id) {
     let imageUrl = categoryImagePreview;
 
     if (categoryImageFile && categoryImageFile instanceof File) {
-      const fileExt = categoryImageFile.name.split('.').pop();
-      const fileName = `categories/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await sb.storage
-        .from('category-images')
-        .upload(fileName, categoryImageFile);
-      if (uploadError) throw new Error(uploadError.message);
-      const { data: urlData } = sb.storage.from('category-images').getPublicUrl(fileName);
-      imageUrl = urlData?.publicUrl || categoryImagePreview;
+      // Use base64 directly - no bucket needed
+      imageUrl = categoryImagePreview;
     }
 
     const payload = {
@@ -2014,7 +2016,7 @@ async function resetAllDeals() {
 }
 
 // ============================================================
-//  🖼️ BANNERS
+//  🖼️ BANNERS (Base64 Upload - No Bucket Needed)
 // ============================================================
 let bannerImageFile = null;
 let bannerImagePreview = '';
@@ -2110,31 +2112,16 @@ async function saveBanner(e, id) {
   const sortOrder = parseInt(document.getElementById('bannerSort').value) || 0;
 
   if (!title) return toast('Enter banner title', true);
+  if (!bannerImagePreview) return toast('Please select an image', true);
 
   try {
-    let imageUrl = bannerImagePreview;
-
-    if (bannerImageFile && bannerImageFile instanceof File) {
-      const fileExt = bannerImageFile.name.split('.').pop();
-      const fileName = `banners/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await sb.storage
-        .from('banner-images')
-        .upload(fileName, bannerImageFile);
-      if (uploadError) {
-        // If bucket doesn't exist, show helpful message
-        if (uploadError.message.includes('bucket not found')) {
-          throw new Error('Storage bucket "banner-images" not found. Please create it in Supabase Storage.');
-        }
-        throw new Error(uploadError.message);
-      }
-      const { data: urlData } = sb.storage.from('banner-images').getPublicUrl(fileName);
-      imageUrl = urlData?.publicUrl || bannerImagePreview;
-    }
+    // Directly use base64 image - no bucket upload needed!
+    const imageUrl = bannerImagePreview;
 
     const payload = {
       title,
       description,
-      image_url: imageUrl || null,
+      image_url: imageUrl,
       link_url: linkUrl || null,
       is_active: isActive,
       sort_order: sortOrder
@@ -2155,7 +2142,8 @@ async function saveBanner(e, id) {
     await loadAllData();
     go('banners', false);
   } catch (err) {
-    toast(err.message, true);
+    toast('Error: ' + err.message, true);
+    console.error(err);
   }
 }
 
@@ -2338,6 +2326,7 @@ console.log('🛡️ Sukkur Bazar Admin Panel v2.0 Loaded!');
 console.log('📂 Manage: Sellers, Products, Orders, Customers, Categories, Coupons, Deals, Banners, Support');
 console.log('🔗 Connected to Supabase:', SUPABASE_URL);
 console.log('🏷️ Deals Management: Shopping app deals can be managed here!');
+console.log('🖼️ Banners & Categories: Images stored as Base64 (no bucket needed!)');
 </script>
 </body>
 </html>
