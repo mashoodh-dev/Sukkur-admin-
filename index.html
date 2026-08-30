@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
 <title>Sukkur Bazar — Admin Panel</title>
 <style>
 /* ===== ROOT VARIABLES ===== */
@@ -2328,5 +2329,12 @@ console.log('🔗 Connected to Supabase:', SUPABASE_URL);
 console.log('🏷️ Deals Management: Shopping app deals can be managed here!');
 console.log('🖼️ Banners & Categories: Images stored as Base64 (no bucket needed!)');
 </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+
 </body>
 </html>
