@@ -2127,66 +2127,67 @@ let bannerImagePreview = '';
 let isBannerUploading = false;
 
 // Compress image before upload
-function compressImage(file, maxWidth = 800, quality = 0.7) {
+function compressImage(file, maxWidth = 1000, quality = 0.78) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+    reader.onerror = () => reject(new Error('Could not read image'));
     reader.onload = (e) => {
       const img = new Image();
-      img.src = e.target.result;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (!width || !height) return reject(new Error('Invalid image'));
         if (width > maxWidth) {
-          height = (maxWidth / width) * height;
+          height = Math.round(height * maxWidth / width);
           width = maxWidth;
         }
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
         ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
+        canvas.toBlob(blob => {
+          if (!blob) return reject(new Error('Image compression failed'));
           resolve(blob);
         }, 'image/jpeg', quality);
       };
-      img.onerror = reject;
+      img.onerror = () => reject(new Error('Invalid image'));
+      img.src = e.target.result;
     };
-    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
-// Upload image to Supabase Storage
-async function uploadBannerImage(file, fileName) {
+async function uploadBannerImage(file) {
   const compressedBlob = await compressImage(file);
-  const fileExt = fileName.split('.').pop() || 'jpg';
-  const cleanName = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_');
-  const path = `banners/${cleanName}_${Date.now()}.${fileExt}`;
-  
-  const { data, error } = await sb.storage
+  const cleanName = (file.name || 'banner')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 60) || 'banner';
+  const path = `banners/${cleanName}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+
+  const { error } = await sb.storage
     .from('banners')
     .upload(path, compressedBlob, {
       contentType: 'image/jpeg',
-      upsert: false,
+      cacheControl: '3600',
+      upsert: false
     });
-  
+
   if (error) throw new Error(error.message);
-  
-  // Get public URL
-  const { data: urlData } = sb.storage
-    .from('banners')
-    .getPublicUrl(path);
-  
-  return urlData.publicUrl;
+  const { data } = sb.storage.from('banners').getPublicUrl(path);
+  if (!data?.publicUrl) throw new Error('Could not create image URL');
+  return data.publicUrl;
 }
 
-// Delete old banner image from storage
 async function deleteBannerImage(url) {
   if (!url) return;
   try {
-    const path = url.split('/banners/')[1];
-    if (path) {
-      await sb.storage.from('banners').remove([path]);
+    const marker = '/banners/';
+    const i = url.indexOf(marker);
+    if (i >= 0) {
+      const path = decodeURIComponent(url.slice(i + marker.length).split('?')[0]);
+      if (path) await sb.storage.from('banners').remove([path]);
     }
   } catch (e) {
     console.warn('Failed to delete old image:', e);
@@ -2214,9 +2215,7 @@ function renderBanners() {
 
   return pageHead('🖼️ Banners', 'Manage home page banners (images uploaded to Supabase Storage)', `
     <button class="primary" style="width:auto;padding:11px 16px" onclick="openBanner()">＋ Add Banner</button>
-  `) + `
-    <div class="grid">${list}</div>
-  `;
+  `) + `<div class="grid">${list}</div>`;
 }
 
 function openBanner(id = null) {
@@ -2224,59 +2223,44 @@ function openBanner(id = null) {
   bannerImagePreview = b?.image_url || '';
   bannerImageFile = null;
   isBannerUploading = false;
-
   const isEdit = !!id;
-  const titleText = isEdit ? 'Edit Banner' : 'Add New Banner';
 
-  modal(titleText, `
+  modal(isEdit ? 'Edit Banner' : 'Add New Banner', `
     <form class="form" onsubmit="saveBanner(event, '${id || ''}')">
       <label>Title <span style="color:var(--muted);font-weight:400">*</span></label>
       <input id="bannerTitle" value="${esc(b?.title || '')}" required placeholder="e.g. Summer Sale">
-
       <label>Description</label>
       <textarea id="bannerDesc" placeholder="Brief description...">${esc(b?.description || '')}</textarea>
-
-      <label>Banner Image <span style="color:var(--muted);font-weight:400">* (JPG/PNG, max 5MB)</span></label>
-      <input type="file" accept="image/*" onchange="previewBannerImage(this.files[0])" ${isEdit ? '' : 'required'}>
+      <label>Banner Image <span style="color:var(--muted);font-weight:400">* (JPG/PNG/WebP, max 5MB)</span></label>
+      <input id="bannerFileInput" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewBannerImage(this.files[0])" ${isEdit ? '' : 'required'}>
       <div id="bannerImagePreview" class="img-preview-grid">
         ${bannerImagePreview ? `<div class="img-preview"><img src="${esc(bannerImagePreview)}"><button type="button" class="remove" onclick="removeBannerImage()">×</button></div>` : ''}
       </div>
-      <div id="uploadProgress" style="display:none;font-size:12px;color:var(--muted)">⏳ Uploading image...</div>
-
+      <div id="uploadProgress" style="display:none;font-size:12px;color:var(--muted)">⏳ Uploading banner...</div>
       <label>Link URL (optional)</label>
       <input id="bannerLink" value="${esc(b?.link_url || '')}" placeholder="https://example.com">
-
       <label>Status</label>
       <select id="bannerStatus">
         <option value="active" ${b?.is_active !== false ? 'selected' : ''}>Active</option>
         <option value="inactive" ${b?.is_active === false ? 'selected' : ''}>Inactive</option>
       </select>
-
       <label>Sort Order</label>
       <input id="bannerSort" type="number" value="${b?.sort_order || 0}" min="0">
-
       <button class="primary" type="submit" id="bannerSubmitBtn">${isEdit ? 'Update' : 'Add'} Banner</button>
     </form>
   `);
 }
 
 function previewBannerImage(file) {
-  if (!file || !file.type.startsWith('image/')) {
-    toast('Please select a valid image file', true);
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    toast('Image size should be less than 5MB', true);
-    return;
-  }
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return toast('Please select a valid image file', true);
+  if (file.size > 5 * 1024 * 1024) return toast('Image size should be less than 5MB', true);
+  bannerImageFile = file;
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = e => {
     bannerImagePreview = e.target.result;
-    bannerImageFile = file;
     const preview = document.getElementById('bannerImagePreview');
-    if (preview) {
-      preview.innerHTML = `<div class="img-preview"><img src="${e.target.result}"><button type="button" class="remove" onclick="removeBannerImage()">×</button></div>`;
-    }
+    if (preview) preview.innerHTML = `<div class="img-preview"><img src="${e.target.result}"><button type="button" class="remove" onclick="removeBannerImage()">×</button></div>`;
   };
   reader.readAsDataURL(file);
 }
@@ -2286,95 +2270,77 @@ function removeBannerImage() {
   bannerImageFile = null;
   const preview = document.getElementById('bannerImagePreview');
   if (preview) preview.innerHTML = '';
-  const fileInput = document.querySelector('#bannerImagePreview')?.closest('form')?.querySelector('input[type="file"]');
-  if (fileInput) fileInput.value = '';
+  const input = document.getElementById('bannerFileInput');
+  if (input) input.value = '';
 }
 
 async function saveBanner(e, id) {
   e.preventDefault();
   if (isBannerUploading) return;
-
   const title = document.getElementById('bannerTitle').value.trim();
   const description = document.getElementById('bannerDesc').value.trim();
   const linkUrl = document.getElementById('bannerLink').value.trim();
   const isActive = document.getElementById('bannerStatus').value === 'active';
   const sortOrder = parseInt(document.getElementById('bannerSort').value) || 0;
-
   if (!title) return toast('Please enter banner title', true);
 
   const submitBtn = document.getElementById('bannerSubmitBtn');
   const progressEl = document.getElementById('uploadProgress');
+  let uploadedImageUrl = null;
 
   try {
-    let imageUrl = null;
+    isBannerUploading = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    progressEl.style.display = 'block';
 
-    // If there's a new image file, upload it to Storage
-    if (bannerImageFile && bannerImageFile instanceof File) {
-      progressEl.style.display = 'block';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Uploading...';
-      isBannerUploading = true;
-
-      imageUrl = await uploadBannerImage(bannerImageFile, bannerImageFile.name);
-
-      progressEl.style.display = 'none';
-      submitBtn.disabled = false;
-      submitBtn.textContent = id ? 'Update' : 'Add';
-      isBannerUploading = false;
-    } else if (bannerImagePreview && !bannerImageFile) {
-      // Keep existing image (edit mode, no new file selected)
-      imageUrl = bannerImagePreview;
-    } else {
-      return toast('Please select an image', true);
+    let imageUrl = bannerImagePreview && !bannerImageFile ? bannerImagePreview : null;
+    if (bannerImageFile instanceof File) {
+      progressEl.textContent = '⏳ Uploading banner image...';
+      imageUrl = await uploadBannerImage(bannerImageFile);
+      uploadedImageUrl = imageUrl;
     }
+    if (!imageUrl) throw new Error('Please select an image');
 
-    if (!imageUrl) return toast('Failed to upload image', true);
+    const oldBanner = id ? state.banners.find(b => b.id === id) : null;
+    const payload = {
+      title, description: description || null, image_url: imageUrl,
+      link_url: linkUrl || null, is_active: isActive, sort_order: sortOrder,
+      updated_at: new Date().toISOString()
+    };
+    let error;
+    if (id) {
+      const r = await sb.from('banner_ads').update(payload).eq('id', id);
+      error = r.error;
+    } else {
+      payload.created_at = new Date().toISOString();
+      const r = await sb.from('banner_ads').insert(payload).select().single();
+      error = r.error;
+      if (!error && r.data) state.banners.unshift(r.data);
+    }
+    if (error) throw new Error(error.message);
 
-    // Delete old image from storage if this is an edit and image changed
-    if (id && bannerImageFile) {
-      const oldBanner = state.banners.find(b => b.id === id);
-      if (oldBanner?.image_url) {
+    if (id) {
+      state.banners = state.banners.map(b => b.id === id ? { ...b, ...payload } : b);
+      if (bannerImageFile && oldBanner?.image_url && oldBanner.image_url !== imageUrl) {
         await deleteBannerImage(oldBanner.image_url);
       }
     }
 
-    const payload = {
-      title,
-      description: description || null,
-      image_url: imageUrl,
-      link_url: linkUrl || null,
-      is_active: isActive,
-      sort_order: sortOrder,
-      updated_at: new Date().toISOString()
-    };
-
-    let error;
-    if (id) {
-      const { error: updateError } = await sb.from('banner_ads').update(payload).eq('id', id);
-      error = updateError;
-    } else {
-      payload.created_at = new Date().toISOString();
-      const { error: insertError } = await sb.from('banner_ads').insert(payload);
-      error = insertError;
-    }
-
-    if (error) throw new Error(error.message);
-
-    toast(id ? 'Banner updated ✓' : 'Banner added ✓');
-    closeModal();
-    
-    // Reset state
     bannerImageFile = null;
     bannerImagePreview = '';
     isBannerUploading = false;
-    
-    await loadAllData();
+    closeModal();
     go('banners', false);
+    toast(id ? 'Banner updated ✓' : 'Banner added ✓');
   } catch (err) {
-    progressEl.style.display = 'none';
-    submitBtn.disabled = false;
-    submitBtn.textContent = id ? 'Update' : 'Add';
+    if (uploadedImageUrl) await deleteBannerImage(uploadedImageUrl);
     isBannerUploading = false;
+    if (progressEl) progressEl.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = id ? 'Update Banner' : 'Add Banner';
+    }
     toast('Error: ' + err.message, true);
     console.error(err);
   }
